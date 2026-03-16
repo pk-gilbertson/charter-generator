@@ -1,16 +1,17 @@
 document.getElementById('charter-form').addEventListener('submit', function(event) {
     event.preventDefault(); // Prevent the form from submitting normally
 
-    // Helper function to create styled paragraphs
+    // --- Helper Functions ---
     const createHeading = (text) => new docx.Paragraph({
         text: text,
         heading: docx.HeadingLevel.HEADING_2,
         spacing: { before: 240, after: 120 }
     });
-    
+
     const createSubheading = (text) => new docx.Paragraph({
         text: text,
         style: "strong",
+        spacing: { after: 60 }
     });
 
     const createBullet = (text) => new docx.Paragraph({
@@ -18,49 +19,68 @@ document.getElementById('charter-form').addEventListener('submit', function(even
         bullet: { level: 0 },
     });
 
-    // Get form data
-    const charterName = document.getElementById('charter-name').value;
-    const vision = document.getElementById('vision-mission').value;
-    const purpose = document.getElementById('purpose').value;
-    const objectives = document.getElementById('objectives').value.split('\n').filter(line => line.trim() !== '');
-    const metrics = document.getElementById('success-metrics').value.split('\n').filter(line => line.trim() !== '');
-    const inScope = document.getElementById('in-scope').value.split('\n').filter(line => line.trim() !== '');
-    const outOfScope = document.getElementById('out-of-scope').value.split('\n').filter(line => line.trim() !== '');
-    const chair = document.getElementById('chair-lead').value;
-    const members = document.getElementById('members').value.split('\n').filter(line => line.trim() !== '');
-    const frequency = document.getElementById('meeting-frequency').value;
-    const decisionMaking = document.getElementById('decision-making').value;
-    const deliverables = document.getElementById('key-deliverables').value.split('\n').filter(line => line.trim() !== '');
-    const term = document.getElementById('term').value;
+    const createParagraph = (text) => new docx.Paragraph({
+        text: text || "", // Ensure text is not undefined
+    });
 
-    // Create member table rows
-    const memberRows = members.map(member => {
-        const [name, title] = member.split(',').map(s => s.trim());
+    // --- Get Form Data ---
+    const getInputValue = (id) => document.getElementById(id).value;
+    const getListFromTextarea = (id) => getInputValue(id).split('\n').filter(line => line.trim() !== '');
+
+    const charterName = getInputValue('charter-name');
+    const vision = getInputValue('vision-mission');
+    const purpose = getInputValue('purpose');
+    const objectives = getListFromTextarea('objectives');
+    const metrics = getListFromTextarea('success-metrics');
+    const inScope = getListFromTextarea('in-scope');
+    const outOfScope = getListFromTextarea('out-of-scope');
+    const chair = getInputValue('chair-lead');
+    const membersText = getListFromTextarea('members');
+    const frequency = getInputValue('meeting-frequency');
+    const decisionMaking = getInputValue('decision-making');
+    const deliverables = getListFromTextarea('key-deliverables');
+    const term = getInputValue('term');
+
+    // --- Build Document Sections ---
+
+    // **FIXED SECTION:** Safely create the member table rows
+    const memberRows = membersText.map(memberLine => {
+        const parts = memberLine.split(',');
+        const name = parts[0] ? parts[0].trim() : ''; // Get the name, or empty string if not present
+        const title = parts[1] ? parts[1].trim() : ''; // Get the title, or empty string if not present
         return new docx.TableRow({
             children: [
-                new docx.TableCell({ children: [new docx.Paragraph(name || '')] }),
-                new docx.TableCell({ children: [new docx.Paragraph(title || '')] }),
+                new docx.TableCell({ children: [createParagraph(name)] }),
+                new docx.TableCell({ children: [createParagraph(title)] }),
             ],
         });
+    });
+
+    const memberTable = new docx.Table({
+        rows: [
+            new docx.TableRow({
+                children: [
+                    new docx.TableCell({ children: [new docx.Paragraph({ text: "Name", style: "strong" })] }),
+                    new docx.TableCell({ children: [new docx.Paragraph({ text: "Title/Role", style: "strong" })] }),
+                ],
+            }),
+            ...memberRows
+        ],
+        width: { size: 100, type: docx.WidthType.PERCENTAGE },
     });
 
     // Create the document
     const doc = new docx.Document({
         sections: [{
             children: [
-                new docx.Paragraph({
-                    text: charterName,
-                    heading: docx.HeadingLevel.TITLE,
-                    alignment: docx.AlignmentType.CENTER,
-                }),
-
+                new docx.Paragraph({ text: charterName, heading: docx.HeadingLevel.TITLE, alignment: docx.AlignmentType.CENTER }),
                 createHeading("1.0 Vision & Mission"),
                 createSubheading("Vision"),
-                new docx.Paragraph(vision),
+                createParagraph(vision),
 
                 createHeading("2.0 Purpose & Goals"),
                 createSubheading("Purpose"),
-                new docx.Paragraph(purpose),
+                createParagraph(purpose),
                 createSubheading("Objectives"),
                 ...objectives.map(createBullet),
                 createSubheading("Success Metrics"),
@@ -74,39 +94,30 @@ document.getElementById('charter-form').addEventListener('submit', function(even
 
                 createHeading("4.0 Membership & Roles"),
                 createSubheading("Chair/Lead"),
-                new docx.Paragraph(chair),
+                createParagraph(chair),
                 createSubheading("Membership"),
-                new docx.Table({
-                    rows: [
-                        new docx.TableRow({
-                            children: [
-                                new docx.TableCell({ children: [new docx.Paragraph({ text: "Name", style: "strong" })] }),
-                                new docx.TableCell({ children: [new docx.Paragraph({ text: "Title/Role", style: "strong" })] }),
-                            ],
-                        }),
-                        ...memberRows
-                    ],
-                    width: { size: 100, type: docx.WidthType.PERCENTAGE },
-                }),
+                memberTable,
 
                 createHeading("5.0 Operations & Governance"),
                 createSubheading("Meeting Frequency"),
-                new docx.Paragraph(frequency),
+                createParagraph(frequency),
                 createSubheading("Decision-Making"),
-                new docx.Paragraph(decisionMaking),
+                createParagraph(decisionMaking),
                 createSubheading("Key Deliverables"),
                 ...deliverables.map(createBullet),
 
                 createHeading("6.0 Charter Review"),
                 createSubheading("Term"),
-                new docx.Paragraph(term),
+                createParagraph(term),
             ],
         }],
     });
 
-    // Generate and download the DOCX file
+    // --- Generate and Download ---
     docx.Packer.toBlob(doc).then(blob => {
-        saveAs(blob, `${charterName.replace(/\s+/g, '_')}_Charter.docx`);
-        console.log('Document created successfully');
+        // Use FileSaver.js to trigger the download
+        saveAs(blob, `${charterName.replace(/\s+/g, '_') || "Charter"}_Charter.docx`);
+    }).catch(err => {
+        console.error(err); // Log any error that happens during document creation
     });
 });
