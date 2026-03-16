@@ -80,8 +80,13 @@
     </div>
 
     <!-- Libraries for generating DOCX file -->
-    <script src="https://unpkg.com/docx@8.2.2/build/umd/index.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js"></script>
-    <script src="script.js"></script>
+    <!-- Using a stable, browser-ready version of docx.js -->
+    <script src="https://unpkg.com/docx@7.3.0/build/index.js"></script>
+    
+    <!-- Using a stable version of FileSaver.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    
+    <!-- Use 'defer' to ensure this script runs only after the above libraries are loaded and the page is ready -->
+    <script src="script.js" defer></script>
 </body>
 </html>
