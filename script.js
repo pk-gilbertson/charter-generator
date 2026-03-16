@@ -1,8 +1,6 @@
 document.getElementById('charter-form').addEventListener('submit', function(event) {
     event.preventDefault(); // Prevent the form from submitting normally
 
-    const { docx } = window; // Get the docx library from the global scope
-
     // Helper function to create styled paragraphs
     const createHeading = (text) => new docx.Paragraph({
         text: text,
