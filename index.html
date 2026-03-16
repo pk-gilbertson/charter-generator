@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Charter Generation Tool</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Charter Generation Tool</h1>
+        <p>Fill out the form below to generate a new charter document.</p>
+
+        <form id="charter-form">
+            <!-- Section 1: Foundation -->
+            <fieldset>
+                <legend>1. Foundation</legend>
+                <label for="charter-name">Charter Name:</label>
+                <input type="text" id="charter-name" name="charter-name" required>
+
+                <label for="vision-mission">Vision/Mission:</label>
+                <textarea id="vision-mission" name="vision-mission" rows="3"></textarea>
+            </fieldset>
+
+            <!-- Section 2: Purpose & Goals -->
+            <fieldset>
+                <legend>2. Purpose & Goals</legend>
+                <label for="purpose">Purpose:</label>
+                <textarea id="purpose" name="purpose" rows="4"></textarea>
+
+                <label for="objectives">Objectives (one per line):</label>
+                <textarea id="objectives" name="objectives" rows="4"></textarea>
+
+                <label for="success-metrics">Success Metrics (one per line):</label>
+                <textarea id="success-metrics" name="success-metrics" rows="4"></textarea>
+            </fieldset>
+
+            <!-- Section 3: Scope -->
+            <fieldset>
+                <legend>3. Scope</legend>
+                <label for="in-scope">In-Scope Activities (one per line):</label>
+                <textarea id="in-scope" name="in-scope" rows="4"></textarea>
+
+                <label for="out-of-scope">Out-of-Scope Activities (one per line):</label>
+                <textarea id="out-of-scope" name="out-of-scope" rows="4"></textarea>
+            </fieldset>
+
+            <!-- Section 4: Membership & Roles -->
+            <fieldset>
+                <legend>4. Membership & Roles</legend>
+                <label for="chair-lead">Chair/Lead:</label>
+                <input type="text" id="chair-lead" name="chair-lead">
+
+                <label for="members">Members (Name, Title - one per line):</label>
+                <textarea id="members" name="members" rows="5" placeholder="e.g., John Doe, Project Manager"></textarea>
+            </fieldset>
+
+            <!-- Section 5: Operations & Governance -->
+            <fieldset>
+                <legend>5. Operations & Governance</legend>
+                <label for="meeting-frequency">Meeting Frequency:</label>
+                <input type="text" id="meeting-frequency" name="meeting-frequency" value="Monthly">
+
+                <label for="decision-making">Decision-Making Process:</label>
+                <input type="text" id="decision-making" name="decision-making" value="Consensus or majority vote">
+
+                <label for="key-deliverables">Key Deliverables (one per line):</label>
+                <textarea id="key-deliverables" name="key-deliverables" rows="3"></textarea>
+            </fieldset>
+
+             <!-- Section 6: Charter Review -->
+             <fieldset>
+                <legend>6. Charter Review</legend>
+                <label for="term">Term & Review Cycle:</label>
+                <input type="text" id="term" name="term" value="Effective for one year, reviewed annually.">
+            </fieldset>
+
+            <button type="submit">Generate Charter</button>
+        </form>
+    </div>
+
+    <!-- Libraries for generating DOCX file -->
+    <script src="https://unpkg.com/docx@8.2.2/build/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
