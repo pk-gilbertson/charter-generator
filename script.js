@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const completionBar = document.getElementById('completion-bar');
   const submitButton = form?.querySelector('button[type="submit"]');
   const submitLabel = submitButton?.textContent?.trim() || 'Generate Charter (.docx)';
-  const docxLib = window.docx;
 
   if (!form) {
     console.error('Charter form not found.');
@@ -600,8 +599,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (!docxLib || typeof window.saveAs !== 'function') {
-      setStatus('Document libraries did not load. Refresh the page and try again.', 'error');
-      return;
+form.addEventListener('submit', async (event) => {
+  event.preventDefault();
+
+  const docxLib = window.docx;  // ← read it here, when it's needed
+
+  const { isValid, firstInvalid } = validateForm();
+  if (!isValid) { ... }
+
+  if (!docxLib || typeof window.saveAs !== 'function') {
+    setStatus('Document libraries did not load. Refresh the page and try again.', 'error');
+    return;
     }
 
     try {
