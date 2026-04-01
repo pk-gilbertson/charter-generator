@@ -599,7 +599,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    if (!docxLib || typeof window.saveAs !== 'function') {
+    if (!getDocx() || typeof window.saveAs !== 'function') {
       setStatus('Document libraries did not load. Refresh the page and try again.', 'error');
       return;
     }
