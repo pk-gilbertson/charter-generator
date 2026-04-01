@@ -1,92 +1,379 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Charter Generation Tool</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="description"
+    content="Generate a practical data governance committee charter for state government agencies and programs."
+  />
+  <title>Data Governance Charter Generator</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div class="container">
-        <h1>Charter Generation Tool</h1>
-        <p>Fill out the form below to generate a new charter document.</p>
+  <a class="skip-link" href="#main-content">Skip to form</a>
 
-        <form id="charter-form">
-            <!-- Section 1: Foundation -->
-            <fieldset>
-                <legend>1. Foundation</legend>
-                <label for="charter-name">Charter Name:</label>
-                <input type="text" id="charter-name" name="charter-name" required>
+  <div class="page-shell">
+    <header class="hero" aria-labelledby="page-title">
+      <div class="hero__copy">
+        <p class="eyebrow">State Government Starter Tool</p>
+        <h1 id="page-title">Data Governance Charter Generator</h1>
+        <p class="hero__lede">
+          Create a practical charter for a governance committee, stewardship council, or working group.
+          Start with the core sections, then expand into advanced governance details when your agency is ready.
+        </p>
 
-                <label for="vision-mission">Vision/Mission:</label>
-                <textarea id="vision-mission" name="vision-mission" rows="3"></textarea>
-            </fieldset>
+        <div class="hero__chips" aria-label="Design themes">
+          <span class="role-chip role-chip--owner">Authority</span>
+          <span class="role-chip role-chip--steward">Quality</span>
+          <span class="role-chip role-chip--custodian">Control</span>
+        </div>
+      </div>
 
-            <!-- Section 2: Purpose & Goals -->
-            <fieldset>
-                <legend>2. Purpose & Goals</legend>
-                <label for="purpose">Purpose:</label>
-                <textarea id="purpose" name="purpose" rows="4"></textarea>
+      <aside class="hero__panel" aria-label="Tool guidance">
+        <h2>What this tool helps you do</h2>
+        <ul>
+          <li>Stand up a committee charter quickly</li>
+          <li>Capture scope, authority, and membership</li>
+          <li>Export a polished draft as a Word document</li>
+        </ul>
+        <p class="hero__note">
+          The form runs entirely in the browser, which makes it suitable for simple GitHub Pages hosting.
+        </p>
+      </aside>
+    </header>
 
-                <label for="objectives">Objectives (one per line):</label>
-                <textarea id="objectives" name="objectives" rows="4"></textarea>
+    <div class="workspace" id="main-content">
+      <nav class="jump-nav" aria-label="Section navigation">
+        <div class="jump-nav__card">
+          <h2>Jump to section</h2>
+          <ol>
+            <li><a href="#section-basics">Charter Basics</a></li>
+            <li><a href="#section-purpose">Purpose &amp; Outcomes</a></li>
+            <li><a href="#section-scope">Scope &amp; Authority</a></li>
+            <li><a href="#section-principles">Guiding Principles</a></li>
+            <li><a href="#section-membership">Membership &amp; Roles</a></li>
+            <li><a href="#section-responsibilities">Responsibilities</a></li>
+            <li><a href="#section-operations">Operating Model</a></li>
+            <li><a href="#section-advanced">Advanced Sections</a></li>
+          </ol>
+        </div>
 
-                <label for="success-metrics">Success Metrics (one per line):</label>
-                <textarea id="success-metrics" name="success-metrics" rows="4"></textarea>
-            </fieldset>
+        <div class="jump-nav__card jump-nav__card--support">
+          <h2>Draft status</h2>
+          <p id="completion-text">Start with the charter basics and purpose sections.</p>
+          <div class="progress" aria-hidden="true">
+            <span id="completion-bar"></span>
+          </div>
+          <p class="filename-label">Download name</p>
+          <p id="filename-preview" class="filename-preview">Data_Governance_Steering_Committee_Charter.docx</p>
+        </div>
+      </nav>
 
-            <!-- Section 3: Scope -->
-            <fieldset>
-                <legend>3. Scope</legend>
-                <label for="in-scope">In-Scope Activities (one per line):</label>
-                <textarea id="in-scope" name="in-scope" rows="4"></textarea>
+      <main>
+        <form id="charter-form" novalidate>
+          <section class="form-card form-card--owner" id="section-basics" aria-labelledby="section-basics-title">
+            <div class="section-heading">
+              <p class="section-kicker">01</p>
+              <div>
+                <h2 id="section-basics-title">Charter Basics</h2>
+                <p>Define the committee identity, scope level, and leadership.</p>
+              </div>
+            </div>
 
-                <label for="out-of-scope">Out-of-Scope Activities (one per line):</label>
-                <textarea id="out-of-scope" name="out-of-scope" rows="4"></textarea>
-            </fieldset>
+            <div class="field-grid field-grid--two">
+              <div class="field-group">
+                <label for="agency-name">Agency / Department Name</label>
+                <input type="text" id="agency-name" name="agency-name" required placeholder="e.g., Department of Health" />
+              </div>
 
-            <!-- Section 4: Membership & Roles -->
-            <fieldset>
-                <legend>4. Membership & Roles</legend>
-                <label for="chair-lead">Chair/Lead:</label>
-                <input type="text" id="chair-lead" name="chair-lead">
+              <div class="field-group">
+                <label for="charter-name">Charter Name</label>
+                <input type="text" id="charter-name" name="charter-name" required placeholder="e.g., Data Governance Steering Committee" />
+              </div>
 
-                <label for="members">Members (Name, Title - one per line):</label>
-                <textarea id="members" name="members" rows="5" placeholder="e.g., John Doe, Project Manager"></textarea>
-            </fieldset>
+              <div class="field-group">
+                <label for="committee-type">Committee Type</label>
+                <select id="committee-type" name="committee-type">
+                  <option value="Data Governance Steering Committee">Data Governance Steering Committee</option>
+                  <option value="Data Governance Advisory Group">Data Governance Advisory Group</option>
+                  <option value="Data Stewardship Council">Data Stewardship Council</option>
+                  <option value="Working Group">Working Group</option>
+                  <option value="Cross-Agency Governance Group">Cross-Agency Governance Group</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
 
-            <!-- Section 5: Operations & Governance -->
-            <fieldset>
-                <legend>5. Operations & Governance</legend>
-                <label for="meeting-frequency">Meeting Frequency:</label>
-                <input type="text" id="meeting-frequency" name="meeting-frequency" value="Monthly">
+              <div class="field-group">
+                <label for="agency-scope">Organizational Scope</label>
+                <select id="agency-scope" name="agency-scope">
+                  <option value="Agency-wide">Agency-wide</option>
+                  <option value="Division-wide">Division-wide</option>
+                  <option value="Program-specific">Program-specific</option>
+                  <option value="Cross-agency">Cross-agency</option>
+                </select>
+              </div>
 
-                <label for="decision-making">Decision-Making Process:</label>
-                <input type="text" id="decision-making" name="decision-making" value="Consensus or majority vote">
+              <div class="field-group">
+                <label for="executive-sponsor">Executive Sponsor</label>
+                <input type="text" id="executive-sponsor" name="executive-sponsor" placeholder="e.g., Secretary, Commissioner, CIO, or Deputy" />
+              </div>
 
-                <label for="key-deliverables">Key Deliverables (one per line):</label>
-                <textarea id="key-deliverables" name="key-deliverables" rows="3"></textarea>
-            </fieldset>
+              <div class="field-group">
+                <label for="chair-lead">Chair / Lead</label>
+                <input type="text" id="chair-lead" name="chair-lead" placeholder="e.g., Chief Data Officer" />
+              </div>
 
-             <!-- Section 6: Charter Review -->
-             <fieldset>
-                <legend>6. Charter Review</legend>
-                <label for="term">Term & Review Cycle:</label>
-                <input type="text" id="term" name="term" value="Effective for one year, reviewed annually.">
-            </fieldset>
+              <div class="field-group">
+                <label for="effective-date">Effective Date</label>
+                <input type="date" id="effective-date" name="effective-date" />
+              </div>
 
-            <button type="submit">Generate Charter</button>
+              <div class="field-group">
+                <label for="term-review">Term &amp; Review Cycle</label>
+                <input type="text" id="term-review" name="term-review" value="Effective until revised or rescinded; reviewed annually." />
+              </div>
+            </div>
+          </section>
+
+          <section class="form-card form-card--owner" id="section-purpose" aria-labelledby="section-purpose-title">
+            <div class="section-heading">
+              <p class="section-kicker">02</p>
+              <div>
+                <h2 id="section-purpose-title">Purpose, Vision &amp; Outcomes</h2>
+                <p>State why the group exists and what success should look like.</p>
+              </div>
+            </div>
+
+            <div class="field-grid">
+              <div class="field-group">
+                <label for="purpose">Purpose</label>
+                <textarea id="purpose" name="purpose" rows="4" placeholder="Describe the business need the committee addresses."></textarea>
+              </div>
+
+              <div class="field-group">
+                <label for="vision-mission">Vision / Mission</label>
+                <textarea id="vision-mission" name="vision-mission" rows="4" placeholder="Describe the desired future state and the mission of the committee."></textarea>
+              </div>
+
+              <div class="field-group">
+                <label for="objectives">Objectives <span class="field-note">One per line</span></label>
+                <textarea id="objectives" name="objectives" rows="5" placeholder="e.g., Improve data quality&#10;Standardize core definitions&#10;Support secure data sharing"></textarea>
+              </div>
+
+              <div class="field-group">
+                <label for="success-metrics">Success Metrics <span class="field-note">One per line</span></label>
+                <textarea id="success-metrics" name="success-metrics" rows="5" placeholder="e.g., % of priority datasets with assigned owner&#10;# of approved standards&#10;# of governance issues resolved"></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="form-card form-card--owner" id="section-scope" aria-labelledby="section-scope-title">
+            <div class="section-heading">
+              <p class="section-kicker">03</p>
+              <div>
+                <h2 id="section-scope-title">Scope &amp; Authority</h2>
+                <p>Clarify what the group governs, what it does not govern, and how issues escalate.</p>
+              </div>
+            </div>
+
+            <div class="field-grid">
+              <div class="field-group">
+                <label for="in-scope">In-Scope Activities <span class="field-note">One per line</span></label>
+                <textarea id="in-scope" name="in-scope" rows="5" placeholder="e.g., Data standards&#10;Metadata expectations&#10;Data quality issues&#10;Data access and sharing workflows"></textarea>
+              </div>
+
+              <div class="field-group">
+                <label for="out-of-scope">Out-of-Scope Activities <span class="field-note">One per line</span></label>
+                <textarea id="out-of-scope" name="out-of-scope" rows="5" placeholder="e.g., Routine platform administration&#10;Budget approval&#10;Project management outside governance scope"></textarea>
+              </div>
+
+              <div class="field-group">
+                <label for="decision-authority">Decision Authority</label>
+                <textarea id="decision-authority" name="decision-authority" rows="4" placeholder="Describe what this group can approve, recommend, monitor, or escalate."></textarea>
+              </div>
+
+              <div class="field-group">
+                <label for="escalation-path">Escalation Path</label>
+                <textarea id="escalation-path" name="escalation-path" rows="4" placeholder="Describe where unresolved issues go next."></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="form-card form-card--steward" id="section-principles" aria-labelledby="section-principles-title">
+            <div class="section-heading">
+              <p class="section-kicker">04</p>
+              <div>
+                <h2 id="section-principles-title">Guiding Principles</h2>
+                <p>Capture the beliefs or operating principles that should shape governance decisions.</p>
+              </div>
+            </div>
+
+            <div class="field-group">
+              <label for="guiding-principles">Guiding Principles <span class="field-note">One per line</span></label>
+              <textarea id="guiding-principles" name="guiding-principles" rows="6" placeholder="e.g., Treat data as an asset&#10;Protect sensitive information&#10;Promote responsible access&#10;Standardize where practical"></textarea>
+            </div>
+          </section>
+
+          <section class="form-card form-card--steward" id="section-membership" aria-labelledby="section-membership-title">
+            <div class="section-heading">
+              <p class="section-kicker">05</p>
+              <div>
+                <h2 id="section-membership-title">Membership &amp; Roles</h2>
+                <p>Define who participates and which business and technical perspectives must be represented.</p>
+              </div>
+            </div>
+
+            <div class="field-grid">
+              <div class="field-group field-group--full">
+                <label for="members">Committee Members <span class="field-note">One per line in the format: Name, Title, Role, Voting Status</span></label>
+                <textarea id="members" name="members" rows="8" placeholder="Jane Doe, Chief Data Officer, Chair, Voting&#10;John Smith, Program Director, Member, Voting&#10;Mary Jones, Privacy Officer, Advisor, Non-Voting"></textarea>
+              </div>
+
+              <div class="field-group">
+                <label for="required-functions">Required Functions / Perspectives</label>
+                <textarea id="required-functions" name="required-functions" rows="5" placeholder="List the perspectives that should be represented."></textarea>
+              </div>
+
+              <div class="field-group">
+                <label for="role-definitions">Role Definitions</label>
+                <textarea id="role-definitions" name="role-definitions" rows="5" placeholder="Describe sponsor, chair, member, advisor, owner, steward, or custodian roles."></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="form-card form-card--steward" id="section-responsibilities" aria-labelledby="section-responsibilities-title">
+            <div class="section-heading">
+              <p class="section-kicker">06</p>
+              <div>
+                <h2 id="section-responsibilities-title">Responsibilities &amp; Deliverables</h2>
+                <p>Describe the work the committee does and the products it should produce.</p>
+              </div>
+            </div>
+
+            <div class="field-grid">
+              <div class="field-group">
+                <label for="responsibilities">Committee Responsibilities <span class="field-note">One per line</span></label>
+                <textarea id="responsibilities" name="responsibilities" rows="7" placeholder="e.g., Review and approve governance standards&#10;Prioritize governance issues&#10;Resolve definition conflicts"></textarea>
+              </div>
+
+              <div class="field-group">
+                <label for="annual-priorities">Annual or Initial Priorities <span class="field-note">One per line</span></label>
+                <textarea id="annual-priorities" name="annual-priorities" rows="7" placeholder="e.g., Assign owners for priority datasets&#10;Create a data glossary&#10;Launch an issue intake process"></textarea>
+              </div>
+
+              <div class="field-group field-group--full">
+                <label for="key-deliverables">Key Deliverables <span class="field-note">One per line</span></label>
+                <textarea id="key-deliverables" name="key-deliverables" rows="5" placeholder="e.g., Charter&#10;Issue log&#10;Data dictionary&#10;Quarterly governance report"></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="form-card form-card--custodian" id="section-operations" aria-labelledby="section-operations-title">
+            <div class="section-heading">
+              <p class="section-kicker">07</p>
+              <div>
+                <h2 id="section-operations-title">Operating Model</h2>
+                <p>Set how the committee meets, makes decisions, and maintains governance records.</p>
+              </div>
+            </div>
+
+            <div class="field-grid field-grid--two">
+              <div class="field-group">
+                <label for="meeting-frequency">Meeting Cadence</label>
+                <input type="text" id="meeting-frequency" name="meeting-frequency" value="Monthly" placeholder="e.g., Monthly on the third Thursday" />
+              </div>
+
+              <div class="field-group">
+                <label for="quorum">Quorum</label>
+                <input type="text" id="quorum" name="quorum" placeholder="e.g., 50% of voting members" />
+              </div>
+
+              <div class="field-group field-group--full">
+                <label for="decision-making">Decision-Making Process</label>
+                <input type="text" id="decision-making" name="decision-making" value="Consensus where practical; otherwise majority vote." />
+              </div>
+
+              <div class="field-group field-group--full">
+                <label for="meeting-administration">Meeting Administration</label>
+                <textarea id="meeting-administration" name="meeting-administration" rows="4" placeholder="Describe agenda ownership, minutes, issue tracking, and records handling."></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section class="form-card form-card--custodian" id="section-advanced" aria-labelledby="section-advanced-title">
+            <div class="section-heading">
+              <p class="section-kicker">08</p>
+              <div>
+                <h2 id="section-advanced-title">Advanced Sections</h2>
+                <p>Use these sections when your agency needs more formal governance, legal alignment, or subcommittee structures.</p>
+              </div>
+            </div>
+
+            <details class="advanced-panel" open>
+              <summary>Policy, privacy, security, and sharing</summary>
+              <div class="field-grid advanced-panel__body">
+                <div class="field-group">
+                  <label for="policy-alignment">Policy / Legal / Regulatory Alignment</label>
+                  <textarea id="policy-alignment" name="policy-alignment" rows="5" placeholder="List the laws, policies, standards, or requirements that shape this committee."></textarea>
+                </div>
+
+                <div class="field-group">
+                  <label for="privacy-security-considerations">Privacy, Security &amp; Data Release Considerations</label>
+                  <textarea id="privacy-security-considerations" name="privacy-security-considerations" rows="5" placeholder="Describe when privacy, security, legal, or disclosure review is required."></textarea>
+                </div>
+
+                <div class="field-group field-group--full">
+                  <label for="data-sharing">Data Sharing &amp; Access Considerations</label>
+                  <textarea id="data-sharing" name="data-sharing" rows="4" placeholder="Describe internal sharing, external sharing, access review, and agreement considerations."></textarea>
+                </div>
+              </div>
+            </details>
+
+            <details class="advanced-panel">
+              <summary>Working groups and subcommittees</summary>
+              <div class="advanced-panel__body">
+                <div class="field-group">
+                  <label for="subcommittees">Standing Working Groups / Subcommittees <span class="field-note">One per line</span></label>
+                  <textarea id="subcommittees" name="subcommittees" rows="5" placeholder="e.g., Data Quality Working Group&#10;Metadata Working Group&#10;Interoperability Working Group"></textarea>
+                </div>
+              </div>
+            </details>
+
+            <details class="advanced-panel">
+              <summary>Version history</summary>
+              <div class="advanced-panel__body">
+                <div class="field-group">
+                  <label for="version-history">Version History <span class="field-note">One per line in the format: Version, Date, Author, Summary of Changes</span></label>
+                  <textarea id="version-history" name="version-history" rows="5" placeholder="1.0, 2026-04-01, Jane Doe, Initial charter draft"></textarea>
+                </div>
+              </div>
+            </details>
+          </section>
+
+          <section class="form-card form-card--support" aria-labelledby="actions-title">
+            <div class="section-heading section-heading--compact">
+              <div>
+                <h2 id="actions-title">Generate your charter</h2>
+                <p>Use the starter content option to populate a practical example before exporting.</p>
+              </div>
+            </div>
+
+            <div class="action-row">
+              <button type="button" class="button button--secondary" id="fill-starter-content">Load starter content</button>
+              <button type="reset" class="button button--ghost">Reset form</button>
+              <button type="submit" class="button button--primary">Generate Charter (.docx)</button>
+            </div>
+
+            <p id="form-status" class="form-status" aria-live="polite"></p>
+          </section>
         </form>
+      </main>
     </div>
+  </div>
 
-    <!-- Libraries for generating DOCX file -->
-    <!-- Using a stable, browser-ready version of docx.js -->
-    <script src="https://unpkg.com/docx@7.3.0/build/index.js"></script>
-    
-    <!-- Using a stable version of FileSaver.js -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-    
-    <!-- Use 'defer' to ensure this script runs only after the above libraries are loaded and the page is ready -->
-    <script src="script.js" defer></script>
+  <script defer src="https://unpkg.com/docx@8.5.0/build/index.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script defer src="script.js"></script>
 </body>
 </html>
