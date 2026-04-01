@@ -7,7 +7,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const completionBar = document.getElementById('completion-bar');
   const submitButton = form?.querySelector('button[type="submit"]');
   const submitLabel = submitButton?.textContent?.trim() || 'Generate Charter (.docx)';
-  function getDocx() { return window.docx; }
+
+  // docx is resolved once at submit time, after CDN scripts have loaded.
+  // All helper functions close over this variable.
+  let docx = null;
 
   if (!form) {
     console.error('Charter form not found.');
@@ -273,18 +276,18 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function blankParagraph(after = 120) {
-    return new getDocx().Paragraph({
+    return new docx.Paragraph({
       text: '',
       spacing: { after }
     });
   }
 
-  function heading(text, level = getDocx().HeadingLevel.HEADING_1, color = '1F2933') {
-    return new getDocx().Paragraph({
+  function heading(text, level, color = '1F2933') {
+    return new docx.Paragraph({
       heading: level,
       spacing: { before: 220, after: 80 },
       children: [
-        new getDocx().TextRun({
+        new docx.TextRun({
           text,
           bold: true,
           color
@@ -294,8 +297,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function bodyParagraph(text) {
-    return new getDocx().Paragraph({
-      children: [new getDocx().TextRun({ text })],
+    return new docx.Paragraph({
+      children: [new docx.TextRun({ text })],
       spacing: { after: 120 }
     });
   }
@@ -307,7 +310,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function bulletList(text) {
     return toLines(text).map(
       (item) =>
-        new getDocx().Paragraph({
+        new docx.Paragraph({
           text: item,
           bullet: { level: 0 },
           spacing: { after: 80 }
@@ -316,14 +319,14 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function tableCell(text, options = {}) {
-    return new getDocx().TableCell({
+    return new docx.TableCell({
       shading: options.shading ? { fill: options.shading } : undefined,
-      verticalAlign: getDocx().VerticalAlign.CENTER,
+      verticalAlign: docx.VerticalAlign.CENTER,
       children: [
-        new getDocx().Paragraph({
+        new docx.Paragraph({
           spacing: { before: 60, after: 60 },
           children: [
-            new getDocx().TextRun({
+            new docx.TextRun({
               text: String(text || ''),
               bold: Boolean(options.bold),
               color: options.color || '1F2933'
@@ -335,39 +338,39 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function createKeyValueTable(rows) {
-    return new getDocx().Table({
-      width: { size: 100, type: getDocx().WidthType.PERCENTAGE },
-      layout: getDocx().TableLayoutType.FIXED,
+    return new docx.Table({
+      width: { size: 100, type: docx.WidthType.PERCENTAGE },
+      layout: docx.TableLayoutType.FIXED,
       borders: {
-        top: { style: getDocx().BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        bottom: { style: getDocx().BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        left: { style: getDocx().BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        right: { style: getDocx().BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        insideHorizontal: { style: getDocx().BorderStyle.SINGLE, size: 1, color: 'E8DDD0' },
-        insideVertical: { style: getDocx().BorderStyle.SINGLE, size: 1, color: 'E8DDD0' }
+        top: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+        bottom: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+        left: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+        right: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+        insideHorizontal: { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' },
+        insideVertical: { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' }
       },
       rows: rows.map(
         ([label, value]) =>
-          new getDocx().TableRow({
+          new docx.TableRow({
             children: [
-              new getDocx().TableCell({
-                width: { size: 28, type: getDocx().WidthType.PERCENTAGE },
+              new docx.TableCell({
+                width: { size: 28, type: docx.WidthType.PERCENTAGE },
                 shading: { fill: 'F7F3EC' },
-                verticalAlign: getDocx().VerticalAlign.CENTER,
+                verticalAlign: docx.VerticalAlign.CENTER,
                 children: [
-                  new getDocx().Paragraph({
+                  new docx.Paragraph({
                     spacing: { before: 80, after: 80 },
-                    children: [new getDocx().TextRun({ text: label, bold: true, color: '1F2933' })]
+                    children: [new docx.TextRun({ text: label, bold: true, color: '1F2933' })]
                   })
                 ]
               }),
-              new getDocx().TableCell({
-                width: { size: 72, type: getDocx().WidthType.PERCENTAGE },
-                verticalAlign: getDocx().VerticalAlign.CENTER,
+              new docx.TableCell({
+                width: { size: 72, type: docx.WidthType.PERCENTAGE },
+                verticalAlign: docx.VerticalAlign.CENTER,
                 children: [
-                  new getDocx().Paragraph({
+                  new docx.Paragraph({
                     spacing: { before: 80, after: 80 },
-                    children: [new getDocx().TextRun({ text: String(value || '') })]
+                    children: [new docx.TextRun({ text: String(value || '') })]
                   })
                 ]
               })
@@ -381,19 +384,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const lines = toLines(linesText || fallbackText);
     const rows = lines.map((line) => splitWithLimit(line, expectedParts));
 
-    return new getDocx().Table({
-      width: { size: 100, type: getDocx().WidthType.PERCENTAGE },
-      layout: getDocx().TableLayoutType.FIXED,
+    return new docx.Table({
+      width: { size: 100, type: docx.WidthType.PERCENTAGE },
+      layout: docx.TableLayoutType.FIXED,
       borders: {
-        top: { style: getDocx().BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        bottom: { style: getDocx().BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        left: { style: getDocx().BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        right: { style: getDocx().BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        insideHorizontal: { style: getDocx().BorderStyle.SINGLE, size: 1, color: 'E8DDD0' },
-        insideVertical: { style: getDocx().BorderStyle.SINGLE, size: 1, color: 'E8DDD0' }
+        top: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+        bottom: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+        left: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+        right: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+        insideHorizontal: { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' },
+        insideVertical: { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' }
       },
       rows: [
-        new getDocx().TableRow({
+        new docx.TableRow({
           tableHeader: true,
           children: headers.map((header) =>
             tableCell(header, {
@@ -405,7 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }),
         ...rows.map(
           (row, index) =>
-            new getDocx().TableRow({
+            new docx.TableRow({
               children: row.map((value) =>
                 tableCell(value, {
                   shading: index % 2 === 0 ? 'FFFFFF' : 'FBF8F2'
@@ -420,7 +423,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function createSection(title, color, buildContent) {
     const content = buildContent();
     if (!Array.isArray(content) || content.length === 0) return [];
-    return [heading(title, getDocx().HeadingLevel.HEADING_1, color), ...content, blankParagraph()];
+    return [heading(title, docx.HeadingLevel.HEADING_1, color), ...content, blankParagraph()];
   }
 
   function buildDocument() {
@@ -463,15 +466,15 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 
     const children = [
-      new getDocx().Paragraph({
-        alignment: getDocx().AlignmentType.CENTER,
+      new docx.Paragraph({
+        alignment: docx.AlignmentType.CENTER,
         spacing: { after: 80 },
-        children: [new getDocx().TextRun({ text: charterName, bold: true, size: 34, color: '1F2933' })]
+        children: [new docx.TextRun({ text: charterName, bold: true, size: 34, color: '1F2933' })]
       }),
-      new getDocx().Paragraph({
-        alignment: getDocx().AlignmentType.CENTER,
+      new docx.Paragraph({
+        alignment: docx.AlignmentType.CENTER,
         spacing: { after: 220 },
-        children: [new getDocx().TextRun({ text: agencyName, size: 24, color: '5A6470' })]
+        children: [new docx.TextRun({ text: agencyName, size: 24, color: '5A6470' })]
       }),
       metadataTable,
       blankParagraph(60),
@@ -482,13 +485,13 @@ document.addEventListener('DOMContentLoaded', () => {
       ...createSection('4. Success Metrics', 'A54A2A', () => bulletList(getValue('success-metrics', DEFAULTS['success-metrics']))),
 
       ...createSection('5. Scope & Authority', 'A54A2A', () => [
-        heading('In Scope', getDocx().HeadingLevel.HEADING_2, 'A54A2A'),
+        heading('In Scope', docx.HeadingLevel.HEADING_2, 'A54A2A'),
         ...bulletList(getValue('in-scope', DEFAULTS['in-scope'])),
-        heading('Out of Scope', getDocx().HeadingLevel.HEADING_2, 'A54A2A'),
+        heading('Out of Scope', docx.HeadingLevel.HEADING_2, 'A54A2A'),
         ...bulletList(getValue('out-of-scope', DEFAULTS['out-of-scope'])),
-        heading('Decision Authority', getDocx().HeadingLevel.HEADING_2, 'A54A2A'),
+        heading('Decision Authority', docx.HeadingLevel.HEADING_2, 'A54A2A'),
         ...multiParagraphs(getValue('decision-authority', DEFAULTS['decision-authority'])),
-        heading('Escalation Path', getDocx().HeadingLevel.HEADING_2, 'A54A2A'),
+        heading('Escalation Path', docx.HeadingLevel.HEADING_2, 'A54A2A'),
         ...multiParagraphs(getValue('escalation-path', DEFAULTS['escalation-path']))
       ]),
 
@@ -497,20 +500,20 @@ document.addEventListener('DOMContentLoaded', () => {
       ),
 
       ...createSection('7. Membership & Representation', '2F5D50', () => [
-        heading('Committee Members', getDocx().HeadingLevel.HEADING_2, '2F5D50'),
+        heading('Committee Members', docx.HeadingLevel.HEADING_2, '2F5D50'),
         membersTable,
-        heading('Required Functions / Perspectives', getDocx().HeadingLevel.HEADING_2, '2F5D50'),
+        heading('Required Functions / Perspectives', docx.HeadingLevel.HEADING_2, '2F5D50'),
         ...bulletList(getValue('required-functions', DEFAULTS['required-functions'])),
-        heading('Role Definitions', getDocx().HeadingLevel.HEADING_2, '2F5D50'),
+        heading('Role Definitions', docx.HeadingLevel.HEADING_2, '2F5D50'),
         ...bulletList(getValue('role-definitions', DEFAULTS['role-definitions']))
       ]),
 
       ...createSection('8. Responsibilities & Deliverables', '2F5D50', () => [
-        heading('Committee Responsibilities', getDocx().HeadingLevel.HEADING_2, '2F5D50'),
+        heading('Committee Responsibilities', docx.HeadingLevel.HEADING_2, '2F5D50'),
         ...bulletList(getValue('responsibilities', DEFAULTS.responsibilities)),
-        heading('Annual or Initial Priorities', getDocx().HeadingLevel.HEADING_2, '2F5D50'),
+        heading('Annual or Initial Priorities', docx.HeadingLevel.HEADING_2, '2F5D50'),
         ...bulletList(getValue('annual-priorities', DEFAULTS['annual-priorities'])),
-        heading('Key Deliverables', getDocx().HeadingLevel.HEADING_2, '2F5D50'),
+        heading('Key Deliverables', docx.HeadingLevel.HEADING_2, '2F5D50'),
         ...bulletList(getValue('key-deliverables', DEFAULTS['key-deliverables']))
       ]),
 
@@ -523,7 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return [
           operatingModelTable,
-          heading('Meeting Administration', getDocx().HeadingLevel.HEADING_2, '5A2D5C'),
+          heading('Meeting Administration', docx.HeadingLevel.HEADING_2, '5A2D5C'),
           ...multiParagraphs(getValue('meeting-administration', DEFAULTS['meeting-administration']))
         ];
       }),
@@ -535,15 +538,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const dataSharing = getOptionalValue('data-sharing');
 
         if (policyAlignment) {
-          content.push(heading('Policy / Legal / Regulatory Alignment', getDocx().HeadingLevel.HEADING_2, '5A2D5C'));
+          content.push(heading('Policy / Legal / Regulatory Alignment', docx.HeadingLevel.HEADING_2, '5A2D5C'));
           content.push(...multiParagraphs(policyAlignment));
         }
         if (privacySecurity) {
-          content.push(heading('Privacy, Security & Data Release Considerations', getDocx().HeadingLevel.HEADING_2, '5A2D5C'));
+          content.push(heading('Privacy, Security & Data Release Considerations', docx.HeadingLevel.HEADING_2, '5A2D5C'));
           content.push(...multiParagraphs(privacySecurity));
         }
         if (dataSharing) {
-          content.push(heading('Data Sharing & Access Considerations', getDocx().HeadingLevel.HEADING_2, '5A2D5C'));
+          content.push(heading('Data Sharing & Access Considerations', docx.HeadingLevel.HEADING_2, '5A2D5C'));
           content.push(...multiParagraphs(dataSharing));
         }
 
@@ -558,7 +561,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ...createSection('12. Version History', '5A2D5C', () => [versionHistoryTable])
     ];
 
-    return new getDocx().Document({
+    return new docx.Document({
       creator: 'Data Governance Charter Generator',
       title: charterName,
       description: 'Generated charter document for a data governance committee.',
@@ -599,7 +602,10 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    if (!getDocx() || typeof window.saveAs !== 'function') {
+    // Resolve the library here, after CDN scripts are guaranteed to have loaded.
+    docx = window.docx;
+
+    if (!docx || typeof window.saveAs !== 'function') {
       setStatus('Document libraries did not load. Refresh the page and try again.', 'error');
       return;
     }
@@ -613,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
       setStatus('Generating your charter document...', 'success');
 
       const documentDefinition = buildDocument();
-      const blob = await getDocx().Packer.toBlob(documentDefinition);
+      const blob = await docx.Packer.toBlob(documentDefinition);
       const fileName = `${safeFileName(getValue('charter-name', DEFAULTS['charter-name']))}_Charter.docx`;
 
       window.saveAs(blob, fileName);
