@@ -7,15 +7,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const completionBar = document.getElementById('completion-bar');
   const submitButton = form?.querySelector('button[type="submit"]');
   const submitLabel = submitButton?.textContent?.trim() || 'Generate Charter (.docx)';
+  const membersTbody = document.getElementById('members-tbody');
+  const addMemberBtn = document.getElementById('add-member-row');
 
   // docx is resolved once at submit time, after CDN scripts have loaded.
-  // All helper functions close over this variable.
   let docx = null;
 
   if (!form) {
     console.error('Charter form not found.');
     return;
   }
+
+  // ─── Constants ────────────────────────────────────────────────────────────
+
+  const MEMBER_COLUMNS = ['Name', 'Title', 'Role', 'Voting Status'];
+
+  const DEFAULT_MEMBERS = [
+    { name: 'Jane Doe', title: 'Chief Data Officer', role: 'Chair', voting: 'Voting' },
+    { name: 'John Smith', title: 'Program Director', role: 'Member', voting: 'Voting' },
+    { name: 'Mary Jones', title: 'Privacy Officer', role: 'Advisor', voting: 'Non-Voting' },
+    { name: 'Alex Brown', title: 'IT Director', role: 'Member', voting: 'Voting' }
+  ];
 
   const DEFAULTS = {
     'agency-name': 'Agency Name',
@@ -67,12 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
       'Standardize where practical while respecting business context.',
       'Assign clear accountability for data decisions.',
       'Use governance to enable operations, not create unnecessary burden.'
-    ].join('\n'),
-    members: [
-      'Jane Doe, Chief Data Officer, Chair, Voting',
-      'John Smith, Program Director, Member, Voting',
-      'Mary Jones, Privacy Officer, Advisor, Non-Voting',
-      'Alex Brown, IT Director, Member, Voting'
     ].join('\n'),
     'required-functions': [
       'Program or business leadership',
@@ -132,10 +138,102 @@ document.addEventListener('DOMContentLoaded', () => {
     'vision-mission',
     'in-scope',
     'guiding-principles',
-    'members',
     'responsibilities',
     'meeting-frequency'
   ];
+
+  // ─── Members table ─────────────────────────────────────────────────────────
+
+  function createMemberRow(data = {}) {
+    const tr = document.createElement('tr');
+    tr.className = 'members-row';
+
+    const fields = [
+      { key: 'name',   placeholder: 'e.g., Jane Doe' },
+      { key: 'title',  placeholder: 'e.g., Chief Data Officer' },
+      { key: 'role',   placeholder: 'e.g., Chair' },
+      { key: 'voting', placeholder: 'e.g., Voting' }
+    ];
+
+    fields.forEach(({ key, placeholder }) => {
+      const td = document.createElement('td');
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'members-input';
+      input.placeholder = placeholder;
+      input.value = data[key] || '';
+      input.setAttribute('aria-label', MEMBER_COLUMNS[fields.findIndex(f => f.key === key)]);
+      input.addEventListener('input', updateHelpers);
+      td.appendChild(input);
+      tr.appendChild(td);
+    });
+
+    // Delete button cell
+    const tdDel = document.createElement('td');
+    tdDel.className = 'members-cell--delete';
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'members-delete-btn';
+    delBtn.setAttribute('aria-label', 'Remove this member');
+    delBtn.title = 'Remove row';
+    delBtn.innerHTML = '&times;';
+    delBtn.addEventListener('click', () => {
+      tr.remove();
+      updateHelpers();
+    });
+    tdDel.appendChild(delBtn);
+    tr.appendChild(tdDel);
+
+    return tr;
+  }
+
+  function initMembersTable() {
+    if (!membersTbody) return;
+    membersTbody.innerHTML = '';
+    membersTbody.appendChild(createMemberRow());
+  }
+
+  function populateMembersTable(members) {
+    if (!membersTbody) return;
+    membersTbody.innerHTML = '';
+    members.forEach((m) => membersTbody.appendChild(createMemberRow(m)));
+  }
+
+  function clearMembersTable() {
+    if (!membersTbody) return;
+    membersTbody.innerHTML = '';
+    membersTbody.appendChild(createMemberRow());
+  }
+
+  function getMemberRows() {
+    if (!membersTbody) return [];
+    return Array.from(membersTbody.querySelectorAll('tr.members-row')).map((tr) => {
+      const inputs = tr.querySelectorAll('input.members-input');
+      return {
+        name:   inputs[0]?.value.trim() || '',
+        title:  inputs[1]?.value.trim() || '',
+        role:   inputs[2]?.value.trim() || '',
+        voting: inputs[3]?.value.trim() || ''
+      };
+    });
+  }
+
+  function hasMemberData() {
+    return getMemberRows().some((r) => r.name || r.title || r.role || r.voting);
+  }
+
+  if (addMemberBtn) {
+    addMemberBtn.addEventListener('click', () => {
+      if (membersTbody) {
+        const newRow = createMemberRow();
+        membersTbody.appendChild(newRow);
+        // Focus the first input in the new row
+        newRow.querySelector('input')?.focus();
+      }
+    });
+  }
+
+  // ─── Field helpers ─────────────────────────────────────────────────────────
 
   function getField(id) {
     return document.getElementById(id);
@@ -226,11 +324,10 @@ document.addEventListener('DOMContentLoaded', () => {
       if (invalid && !firstInvalid) firstInvalid = getField(id);
     });
 
-    return {
-      isValid: !firstInvalid,
-      firstInvalid
-    };
+    return { isValid: !firstInvalid, firstInvalid };
   }
+
+  // ─── Progress & filename ───────────────────────────────────────────────────
 
   function updateFilenamePreview() {
     if (!filenamePreview) return;
@@ -241,8 +338,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function updateCompletion() {
     if (!completionText || !completionBar) return;
 
-    const completed = PROGRESS_FIELD_IDS.filter((id) => getOptionalValue(id)).length;
-    const percent = Math.round((completed / PROGRESS_FIELD_IDS.length) * 100);
+    const textCompleted = PROGRESS_FIELD_IDS.filter((id) => getOptionalValue(id)).length;
+    const membersCompleted = hasMemberData() ? 1 : 0;
+    const total = PROGRESS_FIELD_IDS.length + 1;
+    const completed = textCompleted + membersCompleted;
+    const percent = Math.round((completed / total) * 100);
 
     completionBar.style.width = `${percent}%`;
 
@@ -262,6 +362,8 @@ document.addEventListener('DOMContentLoaded', () => {
     updateCompletion();
   }
 
+  // ─── Starter content ───────────────────────────────────────────────────────
+
   function fillStarterContent() {
     Object.entries(DEFAULTS).forEach(([id, value]) => {
       const field = getField(id);
@@ -271,28 +373,25 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
+    if (!hasMemberData()) {
+      populateMembersTable(DEFAULT_MEMBERS);
+    }
+
     updateHelpers();
     setStatus('Starter content loaded. Review and customize before export.', 'success');
   }
 
+  // ─── docx builder helpers ──────────────────────────────────────────────────
+
   function blankParagraph(after = 120) {
-    return new docx.Paragraph({
-      text: '',
-      spacing: { after }
-    });
+    return new docx.Paragraph({ text: '', spacing: { after } });
   }
 
   function heading(text, level, color = '1F2933') {
     return new docx.Paragraph({
       heading: level,
       spacing: { before: 220, after: 80 },
-      children: [
-        new docx.TextRun({
-          text,
-          bold: true,
-          color
-        })
-      ]
+      children: [new docx.TextRun({ text, bold: true, color })]
     });
   }
 
@@ -309,12 +408,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function bulletList(text) {
     return toLines(text).map(
-      (item) =>
-        new docx.Paragraph({
-          text: item,
-          bullet: { level: 0 },
-          spacing: { after: 80 }
-        })
+      (item) => new docx.Paragraph({ text: item, bullet: { level: 0 }, spacing: { after: 80 } })
     );
   }
 
@@ -337,18 +431,31 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  const TABLE_BORDERS = {
+    top:                { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'C8B9A6' },
+    bottom:             { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'C8B9A6' },
+    left:               { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'C8B9A6' },
+    right:              { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'C8B9A6' },
+    insideHorizontal:   { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'E8DDD0' },
+    insideVertical:     { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'E8DDD0' }
+  };
+
+  function getTableBorders() {
+    return {
+      top:              { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+      bottom:           { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+      left:             { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+      right:            { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+      insideHorizontal: { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' },
+      insideVertical:   { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' }
+    };
+  }
+
   function createKeyValueTable(rows) {
     return new docx.Table({
       width: { size: 100, type: docx.WidthType.PERCENTAGE },
       layout: docx.TableLayoutType.FIXED,
-      borders: {
-        top: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        bottom: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        left: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        right: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        insideHorizontal: { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' },
-        insideVertical: { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' }
-      },
+      borders: getTableBorders(),
       rows: rows.map(
         ([label, value]) =>
           new docx.TableRow({
@@ -387,34 +494,44 @@ document.addEventListener('DOMContentLoaded', () => {
     return new docx.Table({
       width: { size: 100, type: docx.WidthType.PERCENTAGE },
       layout: docx.TableLayoutType.FIXED,
-      borders: {
-        top: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        bottom: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        left: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        right: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        insideHorizontal: { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' },
-        insideVertical: { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' }
-      },
+      borders: getTableBorders(),
       rows: [
         new docx.TableRow({
           tableHeader: true,
           children: headers.map((header) =>
-            tableCell(header, {
-              bold: true,
-              shading: headerFill,
-              color: headerTextColor
-            })
+            tableCell(header, { bold: true, shading: headerFill, color: headerTextColor })
           )
         }),
         ...rows.map(
           (row, index) =>
             new docx.TableRow({
               children: row.map((value) =>
-                tableCell(value, {
-                  shading: index % 2 === 0 ? 'FFFFFF' : 'FBF8F2'
-                })
+                tableCell(value, { shading: index % 2 === 0 ? 'FFFFFF' : 'FBF8F2' })
               )
             })
+        )
+      ]
+    });
+  }
+
+  function createMembersDocTable(members) {
+    return new docx.Table({
+      width: { size: 100, type: docx.WidthType.PERCENTAGE },
+      layout: docx.TableLayoutType.FIXED,
+      borders: getTableBorders(),
+      rows: [
+        new docx.TableRow({
+          tableHeader: true,
+          children: MEMBER_COLUMNS.map((col) =>
+            tableCell(col, { bold: true, shading: '2F5D50', color: 'FFFFFF' })
+          )
+        }),
+        ...members.map((m, index) =>
+          new docx.TableRow({
+            children: [m.name, m.title, m.role, m.voting].map((val) =>
+              tableCell(val, { shading: index % 2 === 0 ? 'FFFFFF' : 'FBF8F2' })
+            )
+          })
         )
       ]
     });
@@ -425,6 +542,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!Array.isArray(content) || content.length === 0) return [];
     return [heading(title, docx.HeadingLevel.HEADING_1, color), ...content, blankParagraph()];
   }
+
+  // ─── Build document ────────────────────────────────────────────────────────
 
   function buildDocument() {
     const charterName = getValue('charter-name', DEFAULTS['charter-name']);
@@ -447,14 +566,9 @@ document.addEventListener('DOMContentLoaded', () => {
       ['Term & Review Cycle', termReview]
     ]);
 
-    const membersTable = createDataTable(
-      ['Name', 'Title', 'Role', 'Voting Status'],
-      getValue('members', DEFAULTS.members),
-      4,
-      DEFAULTS.members,
-      '2F5D50',
-      'FFFFFF'
-    );
+    const memberRows = getMemberRows().filter((r) => r.name || r.title || r.role || r.voting);
+    const membersForDoc = memberRows.length > 0 ? memberRows : DEFAULT_MEMBERS;
+    const membersDocTable = createMembersDocTable(membersForDoc);
 
     const versionHistoryTable = createDataTable(
       ['Version', 'Date', 'Author', 'Summary of Changes'],
@@ -501,7 +615,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       ...createSection('7. Membership & Representation', '2F5D50', () => [
         heading('Committee Members', docx.HeadingLevel.HEADING_2, '2F5D50'),
-        membersTable,
+        membersDocTable,
         heading('Required Functions / Perspectives', docx.HeadingLevel.HEADING_2, '2F5D50'),
         ...bulletList(getValue('required-functions', DEFAULTS['required-functions'])),
         heading('Role Definitions', docx.HeadingLevel.HEADING_2, '2F5D50'),
@@ -523,7 +637,6 @@ document.addEventListener('DOMContentLoaded', () => {
           ['Quorum', getValue('quorum', DEFAULTS.quorum)],
           ['Decision-Making Process', getValue('decision-making', DEFAULTS['decision-making'])]
         ]);
-
         return [
           operatingModelTable,
           heading('Meeting Administration', docx.HeadingLevel.HEADING_2, '5A2D5C'),
@@ -549,7 +662,6 @@ document.addEventListener('DOMContentLoaded', () => {
           content.push(heading('Data Sharing & Access Considerations', docx.HeadingLevel.HEADING_2, '5A2D5C'));
           content.push(...multiParagraphs(dataSharing));
         }
-
         return content;
       }),
 
@@ -569,14 +681,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  // ─── Event listeners ───────────────────────────────────────────────────────
+
   form.addEventListener('input', (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
-
     if (target.id && REQUIRED_FIELD_IDS.includes(target.id)) {
       setAriaInvalid(target.id, !getOptionalValue(target.id));
     }
-
     updateHelpers();
   });
 
@@ -584,6 +696,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.setTimeout(() => {
       REQUIRED_FIELD_IDS.forEach((id) => setAriaInvalid(id, false));
       setStatus('');
+      clearMembersTable();
       updateHelpers();
     }, 0);
   });
@@ -602,7 +715,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    // Resolve the library here, after CDN scripts are guaranteed to have loaded.
     docx = window.docx;
 
     if (!docx || typeof window.saveAs !== 'function') {
@@ -635,5 +747,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // ─── Init ──────────────────────────────────────────────────────────────────
+
+  initMembersTable();
   updateHelpers();
 });
