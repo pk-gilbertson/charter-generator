@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const MEMBER_COLUMNS = ['Name', 'Title', 'Role', 'Voting Status'];
+  const VOTING_OPTIONS = ['', 'Voting', 'Non-Voting'];
 
   const DEFAULT_MEMBERS = [
     { name: 'Jane Doe', title: 'Chief Data Officer', role: 'Chair', voting: 'Voting' },
@@ -140,8 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
     'meeting-frequency'
   ];
 
-
-
   function getJumpThreshold() {
     return Math.max(360, Math.round(window.innerHeight * 0.45));
   }
@@ -180,37 +179,51 @@ document.addEventListener('DOMContentLoaded', () => {
       'Packer'
     ];
 
-    const hasAllKeys = requiredKeys.every((key) => key in library);
-    return hasAllKeys ? library : null;
+    return requiredKeys.every((key) => key in library) ? library : null;
   }
 
   function createMemberRow(data = {}) {
     const tr = document.createElement('tr');
     tr.className = 'members-row';
 
-    const fields = [
-      { key: 'name', placeholder: 'e.g., Jane Doe' },
-      { key: 'title', placeholder: 'e.g., Chief Data Officer' },
-      { key: 'role', placeholder: 'e.g., Chair' },
-      { key: 'voting', placeholder: 'e.g., Voting' }
+    const textFields = [
+      { key: 'name', placeholder: 'e.g., Jane Doe', label: 'Name' },
+      { key: 'title', placeholder: 'e.g., Chief Data Officer', label: 'Title' },
+      { key: 'role', placeholder: 'e.g., Chair', label: 'Role' }
     ];
 
-    fields.forEach(({ key, placeholder }, index) => {
+    textFields.forEach(({ key, placeholder, label }) => {
       const td = document.createElement('td');
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'members-input';
       input.placeholder = placeholder;
       input.value = data[key] || '';
-      input.setAttribute('aria-label', MEMBER_COLUMNS[index]);
+      input.setAttribute('aria-label', label);
       input.addEventListener('input', updateHelpers);
       td.appendChild(input);
       tr.appendChild(td);
     });
 
+    const tdVoting = document.createElement('td');
+    const select = document.createElement('select');
+    select.className = 'members-input members-select';
+    select.setAttribute('aria-label', 'Voting Status');
+
+    VOTING_OPTIONS.forEach((value) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = value || 'Select status';
+      select.appendChild(option);
+    });
+
+    select.value = data.voting || '';
+    select.addEventListener('change', updateHelpers);
+    tdVoting.appendChild(select);
+    tr.appendChild(tdVoting);
+
     const tdDel = document.createElement('td');
     tdDel.className = 'members-cell--delete';
-
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
     delBtn.className = 'members-delete-btn';
@@ -224,7 +237,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       updateHelpers();
     });
-
     tdDel.appendChild(delBtn);
     tr.appendChild(tdDel);
 
@@ -251,12 +263,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!membersTbody) return [];
 
     return Array.from(membersTbody.querySelectorAll('tr.members-row')).map((tr) => {
-      const inputs = tr.querySelectorAll('input.members-input');
+      const fields = tr.querySelectorAll('.members-input');
       return {
-        name: inputs[0]?.value.trim() || '',
-        title: inputs[1]?.value.trim() || '',
-        role: inputs[2]?.value.trim() || '',
-        voting: inputs[3]?.value.trim() || ''
+        name: fields[0]?.value.trim() || '',
+        title: fields[1]?.value.trim() || '',
+        role: fields[2]?.value.trim() || '',
+        voting: fields[3]?.value.trim() || ''
       };
     });
   }
@@ -270,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!membersTbody) return;
       const newRow = createMemberRow();
       membersTbody.appendChild(newRow);
-      newRow.querySelector('input')?.focus();
+      newRow.querySelector('input, select')?.focus();
       updateHelpers();
     });
   }
@@ -540,6 +552,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function createMembersDocTable(members) {
+    const rows = members.length > 0 ? members : [{ name: '', title: '', role: '', voting: '' }];
+
     return new docx.Table({
       width: { size: 100, type: docx.WidthType.PERCENTAGE },
       layout: docx.TableLayoutType.FIXED,
@@ -551,7 +565,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tableCell(col, { bold: true, shading: '2F5D50', color: 'FFFFFF' })
           )
         }),
-        ...members.map((member, index) =>
+        ...rows.map((member, index) =>
           new docx.TableRow({
             children: [member.name, member.title, member.role, member.voting].map((value) =>
               tableCell(value, { shading: index % 2 === 0 ? 'FFFFFF' : 'FBF8F2' })
@@ -590,8 +604,11 @@ document.addEventListener('DOMContentLoaded', () => {
     ]);
 
     const memberRows = getMemberRows().filter((row) => row.name || row.title || row.role || row.voting);
-    const membersForDoc = memberRows.length > 0 ? memberRows : DEFAULT_MEMBERS;
-    const membersDocTable = createMembersDocTable(membersForDoc);
+    const votingMembers = memberRows.filter((row) => row.voting === 'Voting');
+    const nonVotingMembers = memberRows.filter((row) => row.voting === 'Non-Voting');
+
+    const votingMembersTable = createMembersDocTable(votingMembers);
+    const nonVotingMembersTable = createMembersDocTable(nonVotingMembers);
 
     const versionHistoryTable = createDataTable(
       ['Version', 'Date', 'Author', 'Summary of Changes'],
@@ -637,8 +654,10 @@ document.addEventListener('DOMContentLoaded', () => {
       ),
 
       ...createSection('7. Membership & Representation', '2F5D50', () => [
-        heading('Committee Members', docx.HeadingLevel.HEADING_2, '2F5D50'),
-        membersDocTable,
+        heading('Committee Members - Voting', docx.HeadingLevel.HEADING_2, '2F5D50'),
+        votingMembersTable,
+        heading('Committee Members - Non-Voting', docx.HeadingLevel.HEADING_2, '2F5D50'),
+        nonVotingMembersTable,
         heading('Required Functions / Perspectives', docx.HeadingLevel.HEADING_2, '2F5D50'),
         ...bulletList(getValue('required-functions', DEFAULTS['required-functions'])),
         heading('Role Definitions', docx.HeadingLevel.HEADING_2, '2F5D50'),
