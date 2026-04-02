@@ -383,12 +383,6 @@ label {
   font-size: 0.98rem;
 }
 
-.field-group-label {
-  font-weight: 700;
-  font-size: 0.98rem;
-  flex: 1 1 auto;
-}
-
 
 .inline-help-banner {
   margin-bottom: var(--space-5);
@@ -481,6 +475,43 @@ label {
   transform: translateY(0);
 }
 
+
+.form-card--operating .field-grid--operating {
+  gap: 1.15rem;
+}
+
+.form-card--operating .field-group--operating {
+  gap: 0.55rem;
+}
+
+.field-label-row--inline-help {
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.field-label-row--inline-help label {
+  flex: 0 1 auto;
+}
+
+.field-label-row--inline-help .field-help {
+  margin-top: 0;
+}
+
+.field-label-row--inline-help .field-help__button {
+  margin-top: 0;
+}
+
+.form-card--operating .field-help__tooltip {
+  left: 0;
+  right: auto;
+}
+
+.form-card--operating .field-help__tooltip::before {
+  left: 0.55rem;
+  right: auto;
+}
+
 .field-note {
   display: inline;
   font-size: 0.88rem;
@@ -539,87 +570,6 @@ textarea[aria-invalid="true"] {
   box-shadow: 0 0 0 2px rgba(180, 35, 24, 0.08);
 }
 
-
-
-.selection-note {
-  margin: 0;
-  font-size: 0.92rem;
-  color: rgba(31, 41, 51, 0.78);
-  line-height: 1.45;
-}
-
-.conditional-field[hidden] {
-  display: none;
-}
-
-.checkbox-group {
-  margin: 0;
-  padding: 1rem;
-  border: 1px solid rgba(200, 185, 166, 0.7);
-  border-radius: var(--radius-md);
-  background: linear-gradient(180deg, rgba(247, 243, 236, 0.72) 0%, rgba(255, 255, 255, 1) 100%);
-}
-
-.checkbox-list {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.checkbox-option {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.8rem;
-  align-items: start;
-  padding: 0.7rem 0.8rem;
-  border: 1px solid rgba(200, 185, 166, 0.6);
-  border-radius: var(--radius-sm);
-  background: rgba(255, 255, 255, 0.92);
-  cursor: pointer;
-  transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
-}
-
-.checkbox-option:hover {
-  border-color: rgba(31, 41, 51, 0.24);
-  background: #fff;
-}
-
-.checkbox-option:focus-within {
-  border-color: var(--focus-link);
-  box-shadow: 0 0 0 4px rgba(0, 94, 162, 0.12);
-}
-
-.checkbox-option input {
-  width: 1.1rem;
-  height: 1.1rem;
-  margin: 0.15rem 0 0;
-}
-
-.checkbox-option__copy {
-  display: grid;
-  gap: 0.2rem;
-}
-
-.checkbox-option__label {
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.checkbox-option__definition {
-  font-size: 0.9rem;
-  line-height: 1.45;
-  color: rgba(31, 41, 51, 0.78);
-}
-
-.members-select {
-  appearance: none;
-  -webkit-appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, rgba(31, 41, 51, 0.55) 50%),
-    linear-gradient(135deg, rgba(31, 41, 51, 0.55) 50%, transparent 50%);
-  background-position: calc(100% - 1rem) calc(50% - 0.12rem), calc(100% - 0.7rem) calc(50% - 0.12rem);
-  background-size: 0.35rem 0.35rem, 0.35rem 0.35rem;
-  background-repeat: no-repeat;
-  padding-right: 2rem;
-}
 .advanced-panel {
   border: 1px solid rgba(200, 185, 166, 0.72);
   border-radius: var(--radius-md);
@@ -839,8 +789,7 @@ textarea[aria-invalid="true"] {
   background: var(--focus-tint);
 }
 
-.members-input,
-.members-select {
+.members-input {
   width: 100%;
   border: none;
   border-radius: 0;
@@ -850,8 +799,7 @@ textarea[aria-invalid="true"] {
   font-size: 0.95rem;
 }
 
-.members-input:focus-visible,
-.members-select:focus-visible {
+.members-input:focus-visible {
   outline: 2px solid var(--focus-link);
   outline-offset: -2px;
   border-color: transparent;
