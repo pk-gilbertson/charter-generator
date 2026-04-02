@@ -1,24 +1,33 @@
 document.addEventListener('DOMContentLoaded', () => {
-  const docxLib = window.docx;
   const form = document.getElementById('charter-form');
   const statusEl = document.getElementById('form-status');
-  const submitButton = form?.querySelector('button[type="submit"]');
   const fillButton = document.getElementById('fill-starter-content');
   const filenamePreview = document.getElementById('filename-preview');
   const completionText = document.getElementById('completion-text');
   const completionBar = document.getElementById('completion-bar');
-  const submitLabel = submitButton?.textContent || 'Generate Charter (.docx)';
-  const committeeTypeSelect = document.getElementById('committee-type');
-  const committeeTypeTrigger = document.getElementById('committee-type-trigger');
-  const committeeTypeTriggerText = document.getElementById('committee-type-trigger-text');
-  const committeeTypeMenu = document.getElementById('committee-type-menu');
-  const committeeTypeOptions = document.getElementById('committee-type-options');
-  const committeeTypePreviewText = document.getElementById('committee-type-preview-text');
+  const submitButton = form?.querySelector('button[type="submit"]');
+  const submitLabel = submitButton?.textContent?.trim() || 'Generate Charter (.docx)';
+  const membersTbody = document.getElementById('members-tbody');
+  const addMemberBtn = document.getElementById('add-member-row');
+
+  // docx is resolved once at submit time, after CDN scripts have loaded.
+  let docx = null;
 
   if (!form) {
     console.error('Charter form not found.');
     return;
   }
+
+  // ─── Constants ────────────────────────────────────────────────────────────
+
+  const MEMBER_COLUMNS = ['Name', 'Title', 'Role', 'Voting Status'];
+
+  const DEFAULT_MEMBERS = [
+    { name: 'Jane Doe', title: 'Chief Data Officer', role: 'Chair', voting: 'Voting' },
+    { name: 'John Smith', title: 'Program Director', role: 'Member', voting: 'Voting' },
+    { name: 'Mary Jones', title: 'Privacy Officer', role: 'Advisor', voting: 'Non-Voting' },
+    { name: 'Alex Brown', title: 'IT Director', role: 'Member', voting: 'Voting' }
+  ];
 
   const DEFAULTS = {
     'agency-name': 'Agency Name',
@@ -71,12 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
       'Assign clear accountability for data decisions.',
       'Use governance to enable operations, not create unnecessary burden.'
     ].join('\n'),
-    members: [
-      'Jane Doe, Chief Data Officer, Chair, Voting',
-      'John Smith, Program Director, Member, Voting',
-      'Mary Jones, Privacy Officer, Advisor, Non-Voting',
-      'Alex Brown, IT Director, Member, Voting'
-    ].join('\n'),
     'required-functions': [
       'Program or business leadership',
       'Information technology',
@@ -127,15 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
     'version-history': `1.0, ${new Date().toISOString().slice(0, 10)}, System, Initial charter generated`
   };
 
-  const COMMITTEE_TYPE_DEFINITIONS = {
-    'Data Governance Steering Committee': 'Formal body with oversight and decision-making authority for governance.',
-    'Data Governance Advisory Group': 'Provides guidance and recommendations, but does not usually hold final authority.',
-    'Data Stewardship Council': 'Focuses on operational governance, stewardship, data quality, and standards.',
-    'Working Group': 'Temporary or task-focused group addressing a specific governance need.',
-    'Cross-Agency Governance Group': 'Coordinates governance across multiple agencies or departments.',
-    Other: 'Use when the group follows a different or custom governance model.'
-  };
-
   const REQUIRED_FIELD_IDS = ['agency-name', 'charter-name'];
   const PROGRESS_FIELD_IDS = [
     'agency-name',
@@ -144,177 +138,137 @@ document.addEventListener('DOMContentLoaded', () => {
     'vision-mission',
     'in-scope',
     'guiding-principles',
-    'members',
     'responsibilities',
     'meeting-frequency'
   ];
 
-  function setStatus(message, state = '') {
+  // ─── Members table ─────────────────────────────────────────────────────────
+
+  function createMemberRow(data = {}) {
+    const tr = document.createElement('tr');
+    tr.className = 'members-row';
+
+    const fields = [
+      { key: 'name',   placeholder: 'e.g., Jane Doe' },
+      { key: 'title',  placeholder: 'e.g., Chief Data Officer' },
+      { key: 'role',   placeholder: 'e.g., Chair' },
+      { key: 'voting', placeholder: 'e.g., Voting' }
+    ];
+
+    fields.forEach(({ key, placeholder }) => {
+      const td = document.createElement('td');
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'members-input';
+      input.placeholder = placeholder;
+      input.value = data[key] || '';
+      input.setAttribute('aria-label', MEMBER_COLUMNS[fields.findIndex(f => f.key === key)]);
+      input.addEventListener('input', updateHelpers);
+      td.appendChild(input);
+      tr.appendChild(td);
+    });
+
+    // Delete button cell
+    const tdDel = document.createElement('td');
+    tdDel.className = 'members-cell--delete';
+    const delBtn = document.createElement('button');
+    delBtn.type = 'button';
+    delBtn.className = 'members-delete-btn';
+    delBtn.setAttribute('aria-label', 'Remove this member');
+    delBtn.title = 'Remove row';
+    delBtn.innerHTML = '&times;';
+    delBtn.addEventListener('click', () => {
+      tr.remove();
+      updateHelpers();
+    });
+    tdDel.appendChild(delBtn);
+    tr.appendChild(tdDel);
+
+    return tr;
+  }
+
+  function initMembersTable() {
+    if (!membersTbody) return;
+    membersTbody.innerHTML = '';
+    membersTbody.appendChild(createMemberRow());
+  }
+
+  function populateMembersTable(members) {
+    if (!membersTbody) return;
+    membersTbody.innerHTML = '';
+    members.forEach((m) => membersTbody.appendChild(createMemberRow(m)));
+  }
+
+  function clearMembersTable() {
+    if (!membersTbody) return;
+    membersTbody.innerHTML = '';
+    membersTbody.appendChild(createMemberRow());
+  }
+
+  function getMemberRows() {
+    if (!membersTbody) return [];
+    return Array.from(membersTbody.querySelectorAll('tr.members-row')).map((tr) => {
+      const inputs = tr.querySelectorAll('input.members-input');
+      return {
+        name:   inputs[0]?.value.trim() || '',
+        title:  inputs[1]?.value.trim() || '',
+        role:   inputs[2]?.value.trim() || '',
+        voting: inputs[3]?.value.trim() || ''
+      };
+    });
+  }
+
+  function hasMemberData() {
+    return getMemberRows().some((r) => r.name || r.title || r.role || r.voting);
+  }
+
+  if (addMemberBtn) {
+    addMemberBtn.addEventListener('click', () => {
+      if (membersTbody) {
+        const newRow = createMemberRow();
+        membersTbody.appendChild(newRow);
+        // Focus the first input in the new row
+        newRow.querySelector('input')?.focus();
+      }
+    });
+  }
+
+  // ─── Field helpers ─────────────────────────────────────────────────────────
+
+  function getField(id) {
+    return document.getElementById(id);
+  }
+
+  function getOptionalValue(id) {
+    const field = getField(id);
+    if (!field || typeof field.value !== 'string') return '';
+    return field.value.trim();
+  }
+
+  function getValue(id, fallback = '') {
+    const value = getOptionalValue(id);
+    return value || fallback;
+  }
+
+  function setValue(id, value) {
+    const field = getField(id);
+    if (!field) return;
+    field.value = value;
+  }
+
+  function setStatus(message = '', state = '') {
     if (!statusEl) return;
     statusEl.textContent = message;
     statusEl.classList.remove('success', 'error');
     if (state) statusEl.classList.add(state);
   }
 
-  function getElement(id) {
-    return document.getElementById(id);
-  }
-
-  function getValue(id, fallback = '') {
-    const el = getElement(id);
-    if (!el) return fallback;
-    const value = String(el.value || '').trim();
-    return value || fallback;
-  }
-
-  function getOptionalValue(id) {
-    const el = getElement(id);
-    return el ? String(el.value || '').trim() : '';
-  }
-
-  function setValue(id, value) {
-    const el = getElement(id);
-    if (!el) return;
-    el.value = value;
-    if (id === 'committee-type') {
-      syncCommitteeTypePicker();
-    }
-  }
-
-  function getCommitteeTypeDefinition(value) {
-    return COMMITTEE_TYPE_DEFINITIONS[value] || COMMITTEE_TYPE_DEFINITIONS.Other;
-  }
-
-  function updateCommitteeTypePreview(value) {
-    if (!committeeTypePreviewText) return;
-    committeeTypePreviewText.textContent = getCommitteeTypeDefinition(value);
-  }
-
-  function syncCommitteeTypePicker() {
-    if (!committeeTypeSelect || !committeeTypeTriggerText || !committeeTypeOptions) return;
-
-    const currentValue = committeeTypeSelect.value || DEFAULTS['committee-type'];
-    const selectedOption = Array.from(committeeTypeSelect.options).find((option) => option.value === currentValue);
-    committeeTypeTriggerText.textContent = selectedOption ? selectedOption.textContent : currentValue;
-    updateCommitteeTypePreview(currentValue);
-
-    Array.from(committeeTypeOptions.querySelectorAll('.committee-type-option')).forEach((optionEl) => {
-      const isSelected = optionEl.dataset.value === currentValue;
-      optionEl.setAttribute('aria-selected', String(isSelected));
-      optionEl.classList.toggle('is-selected', isSelected);
-    });
-  }
-
-  function openCommitteeTypeMenu() {
-    if (!committeeTypeMenu || !committeeTypeTrigger) return;
-    committeeTypeMenu.hidden = false;
-    committeeTypeTrigger.setAttribute('aria-expanded', 'true');
-    syncCommitteeTypePicker();
-  }
-
-  function closeCommitteeTypeMenu() {
-    if (!committeeTypeMenu || !committeeTypeTrigger) return;
-    committeeTypeMenu.hidden = true;
-    committeeTypeTrigger.setAttribute('aria-expanded', 'false');
-    syncCommitteeTypePicker();
-  }
-
-  function toggleCommitteeTypeMenu() {
-    if (!committeeTypeMenu) return;
-    if (committeeTypeMenu.hidden) {
-      openCommitteeTypeMenu();
-    } else {
-      closeCommitteeTypeMenu();
-    }
-  }
-
-  function selectCommitteeType(value) {
-    if (!committeeTypeSelect) return;
-    committeeTypeSelect.value = value;
-    committeeTypeSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    syncCommitteeTypePicker();
-    closeCommitteeTypeMenu();
-    updateFilenamePreview();
-    updateCompletion();
-  }
-
-  function handleCommitteeTypeKeydown(event) {
-    if (!committeeTypeOptions) return;
-    const options = Array.from(committeeTypeOptions.querySelectorAll('.committee-type-option'));
-    const currentIndex = options.indexOf(document.activeElement);
-
-    if (event.key === 'ArrowDown') {
-      event.preventDefault();
-      const nextIndex = currentIndex < options.length - 1 ? currentIndex + 1 : 0;
-      options[nextIndex]?.focus();
-    } else if (event.key === 'ArrowUp') {
-      event.preventDefault();
-      const prevIndex = currentIndex > 0 ? currentIndex - 1 : options.length - 1;
-      options[prevIndex]?.focus();
-    } else if (event.key === 'Home') {
-      event.preventDefault();
-      options[0]?.focus();
-    } else if (event.key === 'End') {
-      event.preventDefault();
-      options[options.length - 1]?.focus();
-    } else if (event.key === 'Escape') {
-      event.preventDefault();
-      closeCommitteeTypeMenu();
-      committeeTypeTrigger?.focus();
-    }
-  }
-
-  function initCommitteeTypePicker() {
-    if (!committeeTypeSelect || !committeeTypeTrigger || !committeeTypeMenu || !committeeTypeOptions) return;
-
-    const optionData = Array.from(committeeTypeSelect.options).map((option) => ({
-      value: option.value,
-      label: option.textContent || option.value,
-      description: getCommitteeTypeDefinition(option.value)
-    }));
-
-    committeeTypeOptions.innerHTML = '';
-
-    optionData.forEach((item) => {
-      const optionButton = document.createElement('button');
-      optionButton.type = 'button';
-      optionButton.className = 'committee-type-option';
-      optionButton.dataset.value = item.value;
-      optionButton.setAttribute('role', 'option');
-      optionButton.innerHTML = `
-        <span class="committee-type-option__label">${item.label}</span>
-        <span class="committee-type-option__meta">Hover for definition</span>
-      `;
-
-      optionButton.addEventListener('mouseenter', () => updateCommitteeTypePreview(item.value));
-      optionButton.addEventListener('focus', () => updateCommitteeTypePreview(item.value));
-      optionButton.addEventListener('click', () => selectCommitteeType(item.value));
-      optionButton.addEventListener('keydown', handleCommitteeTypeKeydown);
-
-      committeeTypeOptions.appendChild(optionButton);
-    });
-
-    committeeTypeTrigger.addEventListener('click', toggleCommitteeTypeMenu);
-    committeeTypeTrigger.addEventListener('keydown', (event) => {
-      if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        openCommitteeTypeMenu();
-        committeeTypeOptions.querySelector('.committee-type-option.is-selected, .committee-type-option')?.focus();
-      }
-    });
-
-    committeeTypeSelect.addEventListener('change', syncCommitteeTypePicker);
-
-    document.addEventListener('click', (event) => {
-      const target = event.target;
-      if (!(target instanceof Node)) return;
-      const picker = document.getElementById('committee-type-picker');
-      if (picker && !picker.contains(target)) {
-        closeCommitteeTypeMenu();
-      }
-    });
-
-    syncCommitteeTypePicker();
+  function safeFileName(text) {
+    const cleaned = String(text || 'Data_Governance_Charter')
+      .trim()
+      .replace(/[^a-z0-9]+/gi, '_')
+      .replace(/^_+|_+$/g, '');
+    return cleaned || 'Data_Governance_Charter';
   }
 
   function toLines(text) {
@@ -351,21 +305,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function safeFileName(text) {
-    const cleaned = String(text || 'Data_Governance_Charter')
-      .trim()
-      .replace(/[^a-z0-9]+/gi, '_')
-      .replace(/^_+|_+$/g, '');
-    return cleaned || 'Data_Governance_Charter';
-  }
-
   function setAriaInvalid(id, invalid) {
-    const el = getElement(id);
-    if (!el) return;
+    const field = getField(id);
+    if (!field) return;
     if (invalid) {
-      el.setAttribute('aria-invalid', 'true');
+      field.setAttribute('aria-invalid', 'true');
     } else {
-      el.removeAttribute('aria-invalid');
+      field.removeAttribute('aria-invalid');
     }
   }
 
@@ -375,11 +321,13 @@ document.addEventListener('DOMContentLoaded', () => {
     REQUIRED_FIELD_IDS.forEach((id) => {
       const invalid = !getOptionalValue(id);
       setAriaInvalid(id, invalid);
-      if (invalid && !firstInvalid) firstInvalid = getElement(id);
+      if (invalid && !firstInvalid) firstInvalid = getField(id);
     });
 
     return { isValid: !firstInvalid, firstInvalid };
   }
+
+  // ─── Progress & filename ───────────────────────────────────────────────────
 
   function updateFilenamePreview() {
     if (!filenamePreview) return;
@@ -388,9 +336,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function updateCompletion() {
-    if (!completionBar || !completionText) return;
-    const completed = PROGRESS_FIELD_IDS.filter((id) => getOptionalValue(id)).length;
-    const total = PROGRESS_FIELD_IDS.length;
+    if (!completionText || !completionBar) return;
+
+    const textCompleted = PROGRESS_FIELD_IDS.filter((id) => getOptionalValue(id)).length;
+    const membersCompleted = hasMemberData() ? 1 : 0;
+    const total = PROGRESS_FIELD_IDS.length + 1;
+    const completed = textCompleted + membersCompleted;
     const percent = Math.round((completed / total) * 100);
 
     completionBar.style.width = `${percent}%`;
@@ -406,39 +357,48 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function updateHelpers() {
+    updateFilenamePreview();
+    updateCompletion();
+  }
+
+  // ─── Starter content ───────────────────────────────────────────────────────
+
   function fillStarterContent() {
     Object.entries(DEFAULTS).forEach(([id, value]) => {
-      const field = getElement(id);
+      const field = getField(id);
       if (!field) return;
-      if (!String(field.value || '').trim()) {
-        field.value = value;
+      if (!getOptionalValue(id)) {
+        setValue(id, value);
       }
     });
 
-    syncCommitteeTypePicker();
-    updateFilenamePreview();
-    updateCompletion();
+    if (!hasMemberData()) {
+      populateMembersTable(DEFAULT_MEMBERS);
+    }
+
+    updateHelpers();
     setStatus('Starter content loaded. Review and customize before export.', 'success');
   }
 
-  function blankParagraph({ before = 0, after = 120 } = {}) {
-    return new docxLib.Paragraph({ text: '', spacing: { before, after } });
+  // ─── docx builder helpers ──────────────────────────────────────────────────
+
+  function blankParagraph(after = 120) {
+    return new docx.Paragraph({ text: '', spacing: { after } });
   }
 
-  function heading(text, level = docxLib.HeadingLevel.HEADING_1, color) {
-    return new docxLib.Paragraph({
-      text,
+  function heading(text, level, color = '1F2933') {
+    return new docx.Paragraph({
       heading: level,
       spacing: { before: 220, after: 80 },
-      children: [new docxLib.TextRun({ text, bold: true, color: color || '1F2933' })]
+      children: [new docx.TextRun({ text, bold: true, color })]
     });
   }
 
   function bodyParagraph(text) {
-    return new docxLib.Paragraph({
-      children: [new docxLib.TextRun({ text })],
-      spacing: { after: 120 },
-      thematicBreak: false
+    return new docx.Paragraph({
+      children: [new docx.TextRun({ text })],
+      spacing: { after: 120 }
     });
   }
 
@@ -448,120 +408,142 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function bulletList(text) {
     return toLines(text).map(
-      (item) =>
-        new docxLib.Paragraph({
-          text: item,
-          bullet: { level: 0 },
-          spacing: { after: 80 }
-        })
+      (item) => new docx.Paragraph({ text: item, bullet: { level: 0 }, spacing: { after: 80 } })
     );
   }
 
   function tableCell(text, options = {}) {
-    return new docxLib.TableCell({
+    return new docx.TableCell({
       shading: options.shading ? { fill: options.shading } : undefined,
-      verticalAlign: docxLib.VerticalAlign.CENTER,
+      verticalAlign: docx.VerticalAlign.CENTER,
       children: [
-        new docxLib.Paragraph({
+        new docx.Paragraph({
+          spacing: { before: 60, after: 60 },
           children: [
-            new docxLib.TextRun({
+            new docx.TextRun({
               text: String(text || ''),
               bold: Boolean(options.bold),
               color: options.color || '1F2933'
             })
-          ],
-          spacing: { before: 60, after: 60 }
+          ]
         })
       ]
     });
   }
 
+  const TABLE_BORDERS = {
+    top:                { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'C8B9A6' },
+    bottom:             { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'C8B9A6' },
+    left:               { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'C8B9A6' },
+    right:              { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'C8B9A6' },
+    insideHorizontal:   { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'E8DDD0' },
+    insideVertical:     { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'E8DDD0' }
+  };
+
+  function getTableBorders() {
+    return {
+      top:              { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+      bottom:           { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+      left:             { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+      right:            { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+      insideHorizontal: { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' },
+      insideVertical:   { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' }
+    };
+  }
+
   function createKeyValueTable(rows) {
-    return new docxLib.Table({
-      width: { size: 100, type: docxLib.WidthType.PERCENTAGE },
-      layout: docxLib.TableLayoutType.FIXED,
+    return new docx.Table({
+      width: { size: 100, type: docx.WidthType.PERCENTAGE },
+      layout: docx.TableLayoutType.FIXED,
+      borders: getTableBorders(),
       rows: rows.map(
         ([label, value]) =>
-          new docxLib.TableRow({
+          new docx.TableRow({
             children: [
-              new docxLib.TableCell({
-                width: { size: 28, type: docxLib.WidthType.PERCENTAGE },
+              new docx.TableCell({
+                width: { size: 28, type: docx.WidthType.PERCENTAGE },
                 shading: { fill: 'F7F3EC' },
-                verticalAlign: docxLib.VerticalAlign.CENTER,
+                verticalAlign: docx.VerticalAlign.CENTER,
                 children: [
-                  new docxLib.Paragraph({
-                    children: [new docxLib.TextRun({ text: label, bold: true, color: '1F2933' })],
-                    spacing: { before: 80, after: 80 }
+                  new docx.Paragraph({
+                    spacing: { before: 80, after: 80 },
+                    children: [new docx.TextRun({ text: label, bold: true, color: '1F2933' })]
                   })
                 ]
               }),
-              new docxLib.TableCell({
-                width: { size: 72, type: docxLib.WidthType.PERCENTAGE },
-                verticalAlign: docxLib.VerticalAlign.CENTER,
+              new docx.TableCell({
+                width: { size: 72, type: docx.WidthType.PERCENTAGE },
+                verticalAlign: docx.VerticalAlign.CENTER,
                 children: [
-                  new docxLib.Paragraph({
-                    children: [new docxLib.TextRun({ text: String(value || '') })],
-                    spacing: { before: 80, after: 80 }
+                  new docx.Paragraph({
+                    spacing: { before: 80, after: 80 },
+                    children: [new docx.TextRun({ text: String(value || '') })]
                   })
                 ]
               })
             ]
           })
-      ),
-      borders: {
-        top: { style: docxLib.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        bottom: { style: docxLib.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        left: { style: docxLib.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        right: { style: docxLib.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        insideHorizontal: { style: docxLib.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' },
-        insideVertical: { style: docxLib.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' }
-      }
+      )
     });
   }
 
-  function createDataTable(headers, lineText, expectedParts, fallbackText, headerColor, headerTextColor) {
-    const lines = toLines(lineText || fallbackText);
+  function createDataTable(headers, linesText, expectedParts, fallbackText, headerFill, headerTextColor) {
+    const lines = toLines(linesText || fallbackText);
     const rows = lines.map((line) => splitWithLimit(line, expectedParts));
 
-    return new docxLib.Table({
-      width: { size: 100, type: docxLib.WidthType.PERCENTAGE },
-      layout: docxLib.TableLayoutType.FIXED,
+    return new docx.Table({
+      width: { size: 100, type: docx.WidthType.PERCENTAGE },
+      layout: docx.TableLayoutType.FIXED,
+      borders: getTableBorders(),
       rows: [
-        new docxLib.TableRow({
+        new docx.TableRow({
           tableHeader: true,
           children: headers.map((header) =>
-            tableCell(header, {
-              bold: true,
-              shading: headerColor,
-              color: headerTextColor
-            })
+            tableCell(header, { bold: true, shading: headerFill, color: headerTextColor })
           )
         }),
         ...rows.map(
-          (row, rowIndex) =>
-            new docxLib.TableRow({
-              children: row.map((cellValue) =>
-                tableCell(cellValue, { shading: rowIndex % 2 === 0 ? 'FFFFFF' : 'FBF8F2' })
+          (row, index) =>
+            new docx.TableRow({
+              children: row.map((value) =>
+                tableCell(value, { shading: index % 2 === 0 ? 'FFFFFF' : 'FBF8F2' })
               )
             })
         )
-      ],
-      borders: {
-        top: { style: docxLib.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        bottom: { style: docxLib.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        left: { style: docxLib.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        right: { style: docxLib.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-        insideHorizontal: { style: docxLib.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' },
-        insideVertical: { style: docxLib.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' }
-      }
+      ]
     });
   }
 
-  function createSection(title, contentBuilder, color) {
-    const content = contentBuilder();
-    if (!content || content.length === 0) return [];
-    return [heading(title, docxLib.HeadingLevel.HEADING_1, color), ...content, blankParagraph()];
+  function createMembersDocTable(members) {
+    return new docx.Table({
+      width: { size: 100, type: docx.WidthType.PERCENTAGE },
+      layout: docx.TableLayoutType.FIXED,
+      borders: getTableBorders(),
+      rows: [
+        new docx.TableRow({
+          tableHeader: true,
+          children: MEMBER_COLUMNS.map((col) =>
+            tableCell(col, { bold: true, shading: '2F5D50', color: 'FFFFFF' })
+          )
+        }),
+        ...members.map((m, index) =>
+          new docx.TableRow({
+            children: [m.name, m.title, m.role, m.voting].map((val) =>
+              tableCell(val, { shading: index % 2 === 0 ? 'FFFFFF' : 'FBF8F2' })
+            )
+          })
+        )
+      ]
+    });
   }
+
+  function createSection(title, color, buildContent) {
+    const content = buildContent();
+    if (!Array.isArray(content) || content.length === 0) return [];
+    return [heading(title, docx.HeadingLevel.HEADING_1, color), ...content, blankParagraph()];
+  }
+
+  // ─── Build document ────────────────────────────────────────────────────────
 
   function buildDocument() {
     const charterName = getValue('charter-name', DEFAULTS['charter-name']);
@@ -584,176 +566,138 @@ document.addEventListener('DOMContentLoaded', () => {
       ['Term & Review Cycle', termReview]
     ]);
 
-    const versionHistoryText = getOptionalValue('version-history') || DEFAULTS['version-history'];
+    const memberRows = getMemberRows().filter((r) => r.name || r.title || r.role || r.voting);
+    const membersForDoc = memberRows.length > 0 ? memberRows : DEFAULT_MEMBERS;
+    const membersDocTable = createMembersDocTable(membersForDoc);
 
     const versionHistoryTable = createDataTable(
       ['Version', 'Date', 'Author', 'Summary of Changes'],
-      versionHistoryText,
+      getOptionalValue('version-history') || DEFAULTS['version-history'],
       4,
       DEFAULTS['version-history'],
       '5A2D5C',
       'FFFFFF'
     );
 
-    const membersTable = createDataTable(
-      ['Name', 'Title', 'Role', 'Voting Status'],
-      getValue('members', DEFAULTS.members),
-      4,
-      DEFAULTS.members,
-      '2F5D50',
-      'FFFFFF'
-    );
-
     const children = [
-      new docxLib.Paragraph({
-        children: [new docxLib.TextRun({ text: charterName, bold: true, size: 34, color: '1F2933' })],
-        alignment: docxLib.AlignmentType.CENTER,
-        spacing: { after: 80 }
+      new docx.Paragraph({
+        alignment: docx.AlignmentType.CENTER,
+        spacing: { after: 80 },
+        children: [new docx.TextRun({ text: charterName, bold: true, size: 34, color: '1F2933' })]
       }),
-      new docxLib.Paragraph({
-        children: [new docxLib.TextRun({ text: agencyName, size: 24, color: '5A6470' })],
-        alignment: docxLib.AlignmentType.CENTER,
-        spacing: { after: 220 }
+      new docx.Paragraph({
+        alignment: docx.AlignmentType.CENTER,
+        spacing: { after: 220 },
+        children: [new docx.TextRun({ text: agencyName, size: 24, color: '5A6470' })]
       }),
       metadataTable,
-      blankParagraph({ after: 60 }),
+      blankParagraph(60),
 
-      ...createSection('1. Purpose', () => multiParagraphs(getValue('purpose', DEFAULTS.purpose)), 'A54A2A'),
-      ...createSection('2. Vision / Mission', () => multiParagraphs(getValue('vision-mission', DEFAULTS['vision-mission'])), 'A54A2A'),
-      ...createSection('3. Objectives', () => bulletList(getValue('objectives', DEFAULTS.objectives)), 'A54A2A'),
-      ...createSection('4. Success Metrics', () => bulletList(getValue('success-metrics', DEFAULTS['success-metrics'])), 'A54A2A'),
+      ...createSection('1. Purpose', 'A54A2A', () => multiParagraphs(getValue('purpose', DEFAULTS.purpose))),
+      ...createSection('2. Vision / Mission', 'A54A2A', () => multiParagraphs(getValue('vision-mission', DEFAULTS['vision-mission']))),
+      ...createSection('3. Objectives', 'A54A2A', () => bulletList(getValue('objectives', DEFAULTS.objectives))),
+      ...createSection('4. Success Metrics', 'A54A2A', () => bulletList(getValue('success-metrics', DEFAULTS['success-metrics']))),
 
-      ...createSection(
-        '5. Scope & Authority',
-        () => [
-          heading('In Scope', docxLib.HeadingLevel.HEADING_2, 'A54A2A'),
-          ...bulletList(getValue('in-scope', DEFAULTS['in-scope'])),
-          heading('Out of Scope', docxLib.HeadingLevel.HEADING_2, 'A54A2A'),
-          ...bulletList(getValue('out-of-scope', DEFAULTS['out-of-scope'])),
-          heading('Decision Authority', docxLib.HeadingLevel.HEADING_2, 'A54A2A'),
-          ...multiParagraphs(getValue('decision-authority', DEFAULTS['decision-authority'])),
-          heading('Escalation Path', docxLib.HeadingLevel.HEADING_2, 'A54A2A'),
-          ...multiParagraphs(getValue('escalation-path', DEFAULTS['escalation-path']))
-        ],
-        'A54A2A'
+      ...createSection('5. Scope & Authority', 'A54A2A', () => [
+        heading('In Scope', docx.HeadingLevel.HEADING_2, 'A54A2A'),
+        ...bulletList(getValue('in-scope', DEFAULTS['in-scope'])),
+        heading('Out of Scope', docx.HeadingLevel.HEADING_2, 'A54A2A'),
+        ...bulletList(getValue('out-of-scope', DEFAULTS['out-of-scope'])),
+        heading('Decision Authority', docx.HeadingLevel.HEADING_2, 'A54A2A'),
+        ...multiParagraphs(getValue('decision-authority', DEFAULTS['decision-authority'])),
+        heading('Escalation Path', docx.HeadingLevel.HEADING_2, 'A54A2A'),
+        ...multiParagraphs(getValue('escalation-path', DEFAULTS['escalation-path']))
+      ]),
+
+      ...createSection('6. Guiding Principles', '2F5D50', () =>
+        bulletList(getValue('guiding-principles', DEFAULTS['guiding-principles']))
       ),
 
-      ...createSection('6. Guiding Principles', () => bulletList(getValue('guiding-principles', DEFAULTS['guiding-principles'])), '2F5D50'),
+      ...createSection('7. Membership & Representation', '2F5D50', () => [
+        heading('Committee Members', docx.HeadingLevel.HEADING_2, '2F5D50'),
+        membersDocTable,
+        heading('Required Functions / Perspectives', docx.HeadingLevel.HEADING_2, '2F5D50'),
+        ...bulletList(getValue('required-functions', DEFAULTS['required-functions'])),
+        heading('Role Definitions', docx.HeadingLevel.HEADING_2, '2F5D50'),
+        ...bulletList(getValue('role-definitions', DEFAULTS['role-definitions']))
+      ]),
 
-      ...createSection(
-        '7. Membership & Representation',
-        () => [
-          heading('Committee Members', docxLib.HeadingLevel.HEADING_2, '2F5D50'),
-          membersTable,
-          heading('Required Functions / Perspectives', docxLib.HeadingLevel.HEADING_2, '2F5D50'),
-          ...bulletList(getValue('required-functions', DEFAULTS['required-functions'])),
-          heading('Role Definitions', docxLib.HeadingLevel.HEADING_2, '2F5D50'),
-          ...bulletList(getValue('role-definitions', DEFAULTS['role-definitions']))
-        ],
-        '2F5D50'
-      ),
+      ...createSection('8. Responsibilities & Deliverables', '2F5D50', () => [
+        heading('Committee Responsibilities', docx.HeadingLevel.HEADING_2, '2F5D50'),
+        ...bulletList(getValue('responsibilities', DEFAULTS.responsibilities)),
+        heading('Annual or Initial Priorities', docx.HeadingLevel.HEADING_2, '2F5D50'),
+        ...bulletList(getValue('annual-priorities', DEFAULTS['annual-priorities'])),
+        heading('Key Deliverables', docx.HeadingLevel.HEADING_2, '2F5D50'),
+        ...bulletList(getValue('key-deliverables', DEFAULTS['key-deliverables']))
+      ]),
 
-      ...createSection(
-        '8. Responsibilities & Deliverables',
-        () => [
-          heading('Committee Responsibilities', docxLib.HeadingLevel.HEADING_2, '2F5D50'),
-          ...bulletList(getValue('responsibilities', DEFAULTS.responsibilities)),
-          heading('Annual or Initial Priorities', docxLib.HeadingLevel.HEADING_2, '2F5D50'),
-          ...bulletList(getValue('annual-priorities', DEFAULTS['annual-priorities'])),
-          heading('Key Deliverables', docxLib.HeadingLevel.HEADING_2, '2F5D50'),
-          ...bulletList(getValue('key-deliverables', DEFAULTS['key-deliverables']))
-        ],
-        '2F5D50'
-      ),
+      ...createSection('9. Operating Model', '5A2D5C', () => {
+        const operatingModelTable = createKeyValueTable([
+          ['Meeting Cadence', getValue('meeting-frequency', DEFAULTS['meeting-frequency'])],
+          ['Quorum', getValue('quorum', DEFAULTS.quorum)],
+          ['Decision-Making Process', getValue('decision-making', DEFAULTS['decision-making'])]
+        ]);
+        return [
+          operatingModelTable,
+          heading('Meeting Administration', docx.HeadingLevel.HEADING_2, '5A2D5C'),
+          ...multiParagraphs(getValue('meeting-administration', DEFAULTS['meeting-administration']))
+        ];
+      }),
 
-      ...createSection(
-        '9. Operating Model',
-        () => {
-          const operatingModelTable = createKeyValueTable([
-            ['Meeting Cadence', getValue('meeting-frequency', DEFAULTS['meeting-frequency'])],
-            ['Quorum', getValue('quorum', DEFAULTS.quorum)],
-            ['Decision-Making Process', getValue('decision-making', DEFAULTS['decision-making'])]
-          ]);
+      ...createSection('10. Policy, Privacy, Security & Sharing', '5A2D5C', () => {
+        const content = [];
+        const policyAlignment = getOptionalValue('policy-alignment');
+        const privacySecurity = getOptionalValue('privacy-security-considerations');
+        const dataSharing = getOptionalValue('data-sharing');
 
-          return [
-            operatingModelTable,
-            heading('Meeting Administration', docxLib.HeadingLevel.HEADING_2, '5A2D5C'),
-            ...multiParagraphs(getValue('meeting-administration', DEFAULTS['meeting-administration']))
-          ];
-        },
-        '5A2D5C'
-      ),
+        if (policyAlignment) {
+          content.push(heading('Policy / Legal / Regulatory Alignment', docx.HeadingLevel.HEADING_2, '5A2D5C'));
+          content.push(...multiParagraphs(policyAlignment));
+        }
+        if (privacySecurity) {
+          content.push(heading('Privacy, Security & Data Release Considerations', docx.HeadingLevel.HEADING_2, '5A2D5C'));
+          content.push(...multiParagraphs(privacySecurity));
+        }
+        if (dataSharing) {
+          content.push(heading('Data Sharing & Access Considerations', docx.HeadingLevel.HEADING_2, '5A2D5C'));
+          content.push(...multiParagraphs(dataSharing));
+        }
+        return content;
+      }),
 
-      ...createSection(
-        '10. Policy, Privacy, Security & Sharing',
-        () => {
-          const policyAlignment = getOptionalValue('policy-alignment');
-          const privacySecurity = getOptionalValue('privacy-security-considerations');
-          const dataSharing = getOptionalValue('data-sharing');
-          const content = [];
-
-          if (policyAlignment) {
-            content.push(heading('Policy / Legal / Regulatory Alignment', docxLib.HeadingLevel.HEADING_2, '5A2D5C'));
-            content.push(...multiParagraphs(policyAlignment));
-          }
-
-          if (privacySecurity) {
-            content.push(heading('Privacy, Security & Data Release Considerations', docxLib.HeadingLevel.HEADING_2, '5A2D5C'));
-            content.push(...multiParagraphs(privacySecurity));
-          }
-
-          if (dataSharing) {
-            content.push(heading('Data Sharing & Access Considerations', docxLib.HeadingLevel.HEADING_2, '5A2D5C'));
-            content.push(...multiParagraphs(dataSharing));
-          }
-
-          return content;
-        },
-        '5A2D5C'
-      ),
-
-      ...createSection('11. Working Groups & Subcommittees', () => {
+      ...createSection('11. Working Groups & Subcommittees', '5A2D5C', () => {
         const subcommittees = getOptionalValue('subcommittees');
         return subcommittees ? bulletList(subcommittees) : [];
-      }, '5A2D5C'),
+      }),
 
-      ...createSection('12. Version History', () => [versionHistoryTable], '5A2D5C')
+      ...createSection('12. Version History', '5A2D5C', () => [versionHistoryTable])
     ];
 
-    return new docxLib.Document({
+    return new docx.Document({
       creator: 'Data Governance Charter Generator',
       title: charterName,
       description: 'Generated charter document for a data governance committee.',
-      sections: [
-        {
-          properties: {},
-          children
-        }
-      ]
+      sections: [{ children }]
     });
   }
 
-  function updateAllHelpers() {
-    updateFilenamePreview();
-    updateCompletion();
-  }
+  // ─── Event listeners ───────────────────────────────────────────────────────
 
   form.addEventListener('input', (event) => {
     const target = event.target;
-    if (!(target instanceof HTMLElement)) return;
-
+    if (!(target instanceof Element)) return;
     if (target.id && REQUIRED_FIELD_IDS.includes(target.id)) {
       setAriaInvalid(target.id, !getOptionalValue(target.id));
     }
-
-    updateAllHelpers();
+    updateHelpers();
   });
 
   form.addEventListener('reset', () => {
     window.setTimeout(() => {
       REQUIRED_FIELD_IDS.forEach((id) => setAriaInvalid(id, false));
       setStatus('');
-      updateAllHelpers();
+      clearMembersTable();
+      updateHelpers();
     }, 0);
   });
 
@@ -771,20 +715,24 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    if (!docxLib || typeof window.saveAs !== 'function') {
+    docx = window.docx;
+
+    if (!docx || typeof window.saveAs !== 'function') {
       setStatus('Document libraries did not load. Refresh the page and try again.', 'error');
       return;
     }
 
     try {
-      submitButton.disabled = true;
-      submitButton.textContent = 'Generating...';
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = 'Generating...';
+      }
+
       setStatus('Generating your charter document...', 'success');
 
-      const doc = buildDocument();
-      const blob = await docxLib.Packer.toBlob(doc);
-      const charterName = getValue('charter-name', DEFAULTS['charter-name']);
-      const fileName = `${safeFileName(charterName)}_Charter.docx`;
+      const documentDefinition = buildDocument();
+      const blob = await docx.Packer.toBlob(documentDefinition);
+      const fileName = `${safeFileName(getValue('charter-name', DEFAULTS['charter-name']))}_Charter.docx`;
 
       window.saveAs(blob, fileName);
       setStatus(`Done. Download started for ${fileName}.`, 'success');
@@ -792,10 +740,15 @@ document.addEventListener('DOMContentLoaded', () => {
       console.error('Error generating charter:', error);
       setStatus('There was an error generating the charter. Check the browser console for details.', 'error');
     } finally {
-      submitButton.disabled = false;
-      submitButton.textContent = submitLabel;
+      if (submitButton) {
+        submitButton.disabled = false;
+        submitButton.textContent = submitLabel;
+      }
     }
   });
 
-  updateAllHelpers();
+  // ─── Init ──────────────────────────────────────────────────────────────────
+
+  initMembersTable();
+  updateHelpers();
 });
