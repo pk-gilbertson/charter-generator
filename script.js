@@ -10,7 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const membersTbody = document.getElementById('members-tbody');
   const addMemberBtn = document.getElementById('add-member-row');
   const jumpTopButton = document.getElementById('jump-to-top');
+  const resetButton = document.getElementById('reset-form-button');
+
   let docx = null;
+  let initialFormSnapshot = '';
 
   if (!form) {
     console.error('Charter form not found.');
@@ -18,21 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const MEMBER_COLUMNS = ['Name', 'Title', 'Role', 'Voting Status'];
-
-  const COMMITTEE_TYPE_DEFINITIONS = {
-    'Data Governance Steering Committee':
-      'Formal body with oversight and decision-making authority for governance.',
-    'Data Governance Advisory Group':
-      'Provides guidance and recommendations, but does not usually hold final authority.',
-    'Data Stewardship Council':
-      'Focuses on operational governance, stewardship, data quality, and standards.',
-    'Working Group':
-      'Temporary or task-focused group addressing a specific governance need.',
-    'Cross-Agency Governance Group':
-      'Coordinates governance across multiple agencies or departments.',
-    Other:
-      'Use when the group follows a different or custom governance model.'
-  };
 
   const DEFAULT_MEMBERS = [
     { name: 'Jane Doe', title: 'Chief Data Officer', role: 'Chair', voting: 'Voting' },
@@ -154,6 +142,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'meeting-frequency'
   ];
 
+
+
   function getJumpThreshold() {
     return Math.max(360, Math.round(window.innerHeight * 0.45));
   }
@@ -166,12 +156,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function scrollToTop() {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' });
+    window.scrollTo({
+      top: 0,
+      behavior: reducedMotion ? 'auto' : 'smooth'
+    });
   }
 
   function resolveDocx() {
     const library = window.docx;
     if (!library) return null;
+
     const requiredKeys = [
       'Document',
       'Paragraph',
@@ -187,6 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
       'BorderStyle',
       'Packer'
     ];
+
     const hasAllKeys = requiredKeys.every((key) => key in library);
     return hasAllKeys ? library : null;
   }
@@ -217,6 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const tdDel = document.createElement('td');
     tdDel.className = 'members-cell--delete';
+
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
     delBtn.className = 'members-delete-btn';
@@ -230,6 +226,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       updateHelpers();
     });
+
     tdDel.appendChild(delBtn);
     tr.appendChild(tdDel);
 
@@ -252,8 +249,24 @@ document.addEventListener('DOMContentLoaded', () => {
     initMembersTable();
   }
 
+  function serializeFormState() {
+    const formData = new FormData(form);
+    const entries = Array.from(formData.entries()).sort(([a], [b]) => a.localeCompare(b));
+    const normalizedEntries = entries.map(([key, value]) => [key, String(value)]);
+
+    return JSON.stringify({
+      fields: normalizedEntries,
+      members: getMemberRows()
+    });
+  }
+
+  function hasFormChanges() {
+    return serializeFormState() !== initialFormSnapshot;
+  }
+
   function getMemberRows() {
     if (!membersTbody) return [];
+
     return Array.from(membersTbody.querySelectorAll('tr.members-row')).map((tr) => {
       const inputs = tr.querySelectorAll('input.members-input');
       return {
@@ -326,10 +339,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const rawParts = String(line || '')
       .split(',')
       .map((part) => part.trim());
+
     if (rawParts.length <= expectedParts) {
       while (rawParts.length < expectedParts) rawParts.push('');
       return rawParts;
     }
+
     const fixed = rawParts.slice(0, expectedParts - 1);
     fixed.push(rawParts.slice(expectedParts - 1).join(', ').trim());
     return fixed;
@@ -339,6 +354,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!dateString) return '';
     const date = new Date(`${dateString}T00:00:00`);
     if (Number.isNaN(date.getTime())) return dateString;
+
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -358,11 +374,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function validateForm() {
     let firstInvalid = null;
+
     REQUIRED_FIELD_IDS.forEach((id) => {
       const invalid = !getOptionalValue(id);
       setAriaInvalid(id, invalid);
       if (invalid && !firstInvalid) firstInvalid = getField(id);
     });
+
     return { isValid: !firstInvalid, firstInvalid };
   }
 
@@ -374,24 +392,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateCompletion() {
     if (!completionText || !completionBar) return;
+
     const textCompleted = PROGRESS_FIELD_IDS.filter((id) => getOptionalValue(id)).length;
     const membersCompleted = hasMemberData() ? 1 : 0;
     const total = PROGRESS_FIELD_IDS.length + 1;
     const completed = textCompleted + membersCompleted;
     const percent = Math.round((completed / total) * 100);
+
     completionBar.style.width = `${percent}%`;
 
     if (percent < 35) {
       completionText.textContent = 'Start with the charter basics and purpose sections.';
     } else if (percent < 70) {
-      completionText.textContent =
-        'The draft is taking shape. Add membership, responsibilities, and operating details next.';
+      completionText.textContent = 'The draft is taking shape. Add membership, responsibilities, and operating details next.';
     } else if (percent < 100) {
-      completionText.textContent =
-        'Nearly complete. Review advanced sections and export when ready.';
+      completionText.textContent = 'Nearly complete. Review advanced sections and export when ready.';
     } else {
-      completionText.textContent =
-        'Core sections are complete. You are ready to generate the charter.';
+      completionText.textContent = 'Core sections are complete. You are ready to generate the charter.';
     }
   }
 
@@ -413,7 +430,6 @@ document.addEventListener('DOMContentLoaded', () => {
       populateMembersTable(DEFAULT_MEMBERS);
     }
 
-    committeeTypePicker?.syncFromNativeSelect();
     updateHelpers();
     setStatus('Starter content loaded. Review and customize before export.', 'success');
   }
@@ -443,12 +459,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function bulletList(text) {
     return toLines(text).map(
-      (item) =>
-        new docx.Paragraph({
-          text: item,
-          bullet: { level: 0 },
-          spacing: { after: 80 }
-        })
+      (item) => new docx.Paragraph({ text: item, bullet: { level: 0 }, spacing: { after: 80 } })
     );
   }
 
@@ -557,13 +568,12 @@ document.addEventListener('DOMContentLoaded', () => {
             tableCell(col, { bold: true, shading: '2F5D50', color: 'FFFFFF' })
           )
         }),
-        ...members.map(
-          (member, index) =>
-            new docx.TableRow({
-              children: [member.name, member.title, member.role, member.voting].map((value) =>
-                tableCell(value, { shading: index % 2 === 0 ? 'FFFFFF' : 'FBF8F2' })
-              )
-            })
+        ...members.map((member, index) =>
+          new docx.TableRow({
+            children: [member.name, member.title, member.role, member.voting].map((value) =>
+              tableCell(value, { shading: index % 2 === 0 ? 'FFFFFF' : 'FBF8F2' })
+            )
+          })
         )
       ]
     });
@@ -623,18 +633,11 @@ document.addEventListener('DOMContentLoaded', () => {
       metadataTable,
       blankParagraph(60),
 
-      ...createSection('1. Purpose', 'A54A2A', () =>
-        multiParagraphs(getValue('purpose', DEFAULTS.purpose))
-      ),
-      ...createSection('2. Vision / Mission', 'A54A2A', () =>
-        multiParagraphs(getValue('vision-mission', DEFAULTS['vision-mission']))
-      ),
-      ...createSection('3. Objectives', 'A54A2A', () =>
-        bulletList(getValue('objectives', DEFAULTS.objectives))
-      ),
-      ...createSection('4. Success Metrics', 'A54A2A', () =>
-        bulletList(getValue('success-metrics', DEFAULTS['success-metrics']))
-      ),
+      ...createSection('1. Purpose', 'A54A2A', () => multiParagraphs(getValue('purpose', DEFAULTS.purpose))),
+      ...createSection('2. Vision / Mission', 'A54A2A', () => multiParagraphs(getValue('vision-mission', DEFAULTS['vision-mission']))),
+      ...createSection('3. Objectives', 'A54A2A', () => bulletList(getValue('objectives', DEFAULTS.objectives))),
+      ...createSection('4. Success Metrics', 'A54A2A', () => bulletList(getValue('success-metrics', DEFAULTS['success-metrics']))),
+
       ...createSection('5. Scope & Authority', 'A54A2A', () => [
         heading('In Scope', docx.HeadingLevel.HEADING_2, 'A54A2A'),
         ...bulletList(getValue('in-scope', DEFAULTS['in-scope'])),
@@ -645,9 +648,11 @@ document.addEventListener('DOMContentLoaded', () => {
         heading('Escalation Path', docx.HeadingLevel.HEADING_2, 'A54A2A'),
         ...multiParagraphs(getValue('escalation-path', DEFAULTS['escalation-path']))
       ]),
+
       ...createSection('6. Guiding Principles', '2F5D50', () =>
         bulletList(getValue('guiding-principles', DEFAULTS['guiding-principles']))
       ),
+
       ...createSection('7. Membership & Representation', '2F5D50', () => [
         heading('Committee Members', docx.HeadingLevel.HEADING_2, '2F5D50'),
         membersDocTable,
@@ -656,6 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
         heading('Role Definitions', docx.HeadingLevel.HEADING_2, '2F5D50'),
         ...bulletList(getValue('role-definitions', DEFAULTS['role-definitions']))
       ]),
+
       ...createSection('8. Responsibilities & Deliverables', '2F5D50', () => [
         heading('Committee Responsibilities', docx.HeadingLevel.HEADING_2, '2F5D50'),
         ...bulletList(getValue('responsibilities', DEFAULTS.responsibilities)),
@@ -664,6 +670,7 @@ document.addEventListener('DOMContentLoaded', () => {
         heading('Key Deliverables', docx.HeadingLevel.HEADING_2, '2F5D50'),
         ...bulletList(getValue('key-deliverables', DEFAULTS['key-deliverables']))
       ]),
+
       ...createSection('9. Operating Model', '5A2D5C', () => {
         const operatingModelTable = createKeyValueTable([
           ['Meeting Cadence', getValue('meeting-frequency', DEFAULTS['meeting-frequency'])],
@@ -677,6 +684,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ...multiParagraphs(getValue('meeting-administration', DEFAULTS['meeting-administration']))
         ];
       }),
+
       ...createSection('10. Policy, Privacy, Security & Sharing', '5A2D5C', () => {
         const content = [];
         const policyAlignment = getOptionalValue('policy-alignment');
@@ -689,9 +697,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (privacySecurity) {
-          content.push(
-            heading('Privacy, Security & Data Release Considerations', docx.HeadingLevel.HEADING_2, '5A2D5C')
-          );
+          content.push(heading('Privacy, Security & Data Release Considerations', docx.HeadingLevel.HEADING_2, '5A2D5C'));
           content.push(...multiParagraphs(privacySecurity));
         }
 
@@ -702,10 +708,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return content;
       }),
+
       ...createSection('11. Working Groups & Subcommittees', '5A2D5C', () => {
         const subcommittees = getOptionalValue('subcommittees');
         return subcommittees ? bulletList(subcommittees) : [];
       }),
+
       ...createSection('12. Version History', '5A2D5C', () => [versionHistoryTable])
     ];
 
@@ -716,208 +724,6 @@ document.addEventListener('DOMContentLoaded', () => {
       sections: [{ children }]
     });
   }
-
-  function initCommitteeTypePicker() {
-    const wrapper = document.querySelector('[data-custom-select]');
-    const nativeSelect = document.getElementById('committee-type');
-
-    if (!wrapper || !nativeSelect) return null;
-
-    const trigger = wrapper.querySelector('.custom-select__trigger');
-    const triggerLabel = wrapper.querySelector('.custom-select__trigger-label');
-    const dropdown = wrapper.querySelector('.custom-select__dropdown');
-    const listbox = wrapper.querySelector('.custom-select__listbox');
-    const definitionText = wrapper.querySelector('.custom-select__definition-text');
-    const options = Array.from(wrapper.querySelectorAll('.custom-select__option'));
-
-    if (!trigger || !triggerLabel || !dropdown || !listbox || !definitionText || options.length === 0) {
-      return null;
-    }
-
-    let activeIndex = Math.max(
-      0,
-      options.findIndex((option) => option.dataset.value === nativeSelect.value)
-    );
-
-    function getDefinition(value) {
-      return COMMITTEE_TYPE_DEFINITIONS[value] || COMMITTEE_TYPE_DEFINITIONS.Other;
-    }
-
-    function setExpanded(isOpen) {
-      wrapper.classList.toggle('is-open', isOpen);
-      dropdown.hidden = !isOpen;
-      trigger.setAttribute('aria-expanded', String(isOpen));
-
-      if (isOpen) {
-        listbox.focus();
-      } else {
-        options.forEach((option) => option.classList.remove('is-active'));
-      }
-    }
-
-    function updateDefinitionByIndex(index) {
-      const option = options[index];
-      if (!option) return;
-      definitionText.textContent = getDefinition(option.dataset.value || '');
-    }
-
-    function updateOptionState(selectedValue, focusIndex = activeIndex) {
-      options.forEach((option, index) => {
-        const isSelected = option.dataset.value === selectedValue;
-        const isActive = index === focusIndex;
-        option.classList.toggle('is-selected', isSelected);
-        option.classList.toggle('is-active', isActive);
-        option.setAttribute('aria-selected', String(isSelected));
-      });
-
-      activeIndex = focusIndex;
-      const activeOption = options[activeIndex];
-      if (activeOption) {
-        listbox.setAttribute('aria-activedescendant', activeOption.id);
-        activeOption.scrollIntoView({ block: 'nearest' });
-      } else {
-        listbox.removeAttribute('aria-activedescendant');
-      }
-    }
-
-    function commitValue(value, shouldClose = true) {
-      if (!value) return;
-      nativeSelect.value = value;
-      triggerLabel.textContent = value;
-      activeIndex = Math.max(
-        0,
-        options.findIndex((option) => option.dataset.value === value)
-      );
-
-      updateOptionState(value, activeIndex);
-      definitionText.textContent = getDefinition(value);
-      nativeSelect.dispatchEvent(new Event('input', { bubbles: true }));
-      nativeSelect.dispatchEvent(new Event('change', { bubbles: true }));
-
-      if (shouldClose) {
-        setExpanded(false);
-        trigger.focus();
-      }
-    }
-
-    function syncFromNativeSelect() {
-      const value = nativeSelect.value || DEFAULTS['committee-type'];
-      triggerLabel.textContent = value;
-      activeIndex = Math.max(
-        0,
-        options.findIndex((option) => option.dataset.value === value)
-      );
-      updateOptionState(value, activeIndex);
-      definitionText.textContent = getDefinition(value);
-    }
-
-    function moveActive(direction) {
-      const next = (activeIndex + direction + options.length) % options.length;
-      updateOptionState(nativeSelect.value, next);
-      updateDefinitionByIndex(next);
-    }
-
-    trigger.addEventListener('click', () => {
-      const isOpen = wrapper.classList.contains('is-open');
-      setExpanded(!isOpen);
-      if (!isOpen) {
-        updateDefinitionByIndex(activeIndex);
-      }
-    });
-
-    trigger.addEventListener('keydown', (event) => {
-      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-        event.preventDefault();
-        if (!wrapper.classList.contains('is-open')) {
-          setExpanded(true);
-        }
-        moveActive(event.key === 'ArrowDown' ? 1 : -1);
-      }
-
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        if (!wrapper.classList.contains('is-open')) {
-          setExpanded(true);
-        } else {
-          commitValue(options[activeIndex]?.dataset.value || nativeSelect.value);
-        }
-      }
-
-      if (event.key === 'Escape' && wrapper.classList.contains('is-open')) {
-        event.preventDefault();
-        setExpanded(false);
-      }
-    });
-
-    listbox.addEventListener('keydown', (event) => {
-      if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        moveActive(1);
-      } else if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        moveActive(-1);
-      } else if (event.key === 'Home') {
-        event.preventDefault();
-        updateOptionState(nativeSelect.value, 0);
-        updateDefinitionByIndex(0);
-      } else if (event.key === 'End') {
-        event.preventDefault();
-        const lastIndex = options.length - 1;
-        updateOptionState(nativeSelect.value, lastIndex);
-        updateDefinitionByIndex(lastIndex);
-      } else if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        commitValue(options[activeIndex]?.dataset.value || nativeSelect.value);
-      } else if (event.key === 'Escape') {
-        event.preventDefault();
-        setExpanded(false);
-        trigger.focus();
-      } else if (event.key === 'Tab') {
-        setExpanded(false);
-      }
-    });
-
-    options.forEach((option, index) => {
-      option.addEventListener('mouseenter', () => {
-        activeIndex = index;
-        updateOptionState(nativeSelect.value, activeIndex);
-        updateDefinitionByIndex(activeIndex);
-      });
-
-      option.addEventListener('focus', () => {
-        activeIndex = index;
-        updateOptionState(nativeSelect.value, activeIndex);
-        updateDefinitionByIndex(activeIndex);
-      });
-
-      option.addEventListener('click', () => {
-        commitValue(option.dataset.value || nativeSelect.value);
-      });
-    });
-
-    nativeSelect.addEventListener('change', syncFromNativeSelect);
-
-    document.addEventListener('click', (event) => {
-      if (!wrapper.contains(event.target)) {
-        setExpanded(false);
-      }
-    });
-
-    form.addEventListener('reset', () => {
-      window.setTimeout(() => {
-        syncFromNativeSelect();
-        setExpanded(false);
-      }, 0);
-    });
-
-    syncFromNativeSelect();
-
-    return {
-      syncFromNativeSelect
-    };
-  }
-
-  const committeeTypePicker = initCommitteeTypePicker();
 
   form.addEventListener('input', (event) => {
     const target = event.target;
@@ -935,13 +741,23 @@ document.addEventListener('DOMContentLoaded', () => {
       REQUIRED_FIELD_IDS.forEach((id) => setAriaInvalid(id, false));
       setStatus('');
       clearMembersTable();
-      committeeTypePicker?.syncFromNativeSelect();
       updateHelpers();
     }, 0);
   });
 
   if (fillButton) {
     fillButton.addEventListener('click', fillStarterContent);
+  }
+
+  if (resetButton) {
+    resetButton.addEventListener('click', () => {
+      if (hasFormChanges()) {
+        const confirmed = window.confirm('Clear the form and remove any entered content?');
+        if (!confirmed) return;
+      }
+
+      form.reset();
+    });
   }
 
   if (jumpTopButton) {
@@ -962,6 +778,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     docx = resolveDocx();
+
     if (!docx || typeof window.saveAs !== 'function') {
       setStatus('Document libraries did not load. Refresh the page and try again.', 'error');
       return;
@@ -974,6 +791,7 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       setStatus('Generating your charter document...', 'success');
+
       const documentDefinition = buildDocument();
       const blob = await docx.Packer.toBlob(documentDefinition);
       const fileName = `${safeFileName(getValue('charter-name', DEFAULTS['charter-name']))}_Charter.docx`;
@@ -992,7 +810,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   initMembersTable();
-  committeeTypePicker?.syncFromNativeSelect();
+  initialFormSnapshot = serializeFormState();
   updateHelpers();
   updateJumpTopVisibility();
 });
