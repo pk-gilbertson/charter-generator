@@ -9,8 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitLabel = submitButton?.textContent?.trim() || 'Generate Charter (.docx)';
   const membersTbody = document.getElementById('members-tbody');
   const addMemberBtn = document.getElementById('add-member-row');
+  const jumpToTopButton = document.getElementById('jump-to-top');
 
-  // docx is resolved once at submit time, after CDN scripts have loaded.
   let docx = null;
 
   if (!form) {
@@ -18,9 +18,8 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // ─── Constants ────────────────────────────────────────────────────────────
-
   const MEMBER_COLUMNS = ['Name', 'Title', 'Role', 'Voting Status'];
+  const VOTING_OPTIONS = ['', 'Voting', 'Non-Voting'];
 
   const DEFAULT_MEMBERS = [
     { name: 'Jane Doe', title: 'Chief Data Officer', role: 'Chair', voting: 'Voting' },
@@ -142,35 +141,72 @@ document.addEventListener('DOMContentLoaded', () => {
     'meeting-frequency'
   ];
 
-  // ─── Members table ─────────────────────────────────────────────────────────
+  function resolveDocx() {
+    const library = window.docx;
+    if (!library) return null;
+
+    const requiredKeys = [
+      'Document',
+      'Paragraph',
+      'TextRun',
+      'Table',
+      'TableRow',
+      'TableCell',
+      'HeadingLevel',
+      'AlignmentType',
+      'WidthType',
+      'TableLayoutType',
+      'VerticalAlign',
+      'BorderStyle',
+      'Packer'
+    ];
+
+    return requiredKeys.every((key) => key in library) ? library : null;
+  }
 
   function createMemberRow(data = {}) {
     const tr = document.createElement('tr');
     tr.className = 'members-row';
 
-    const fields = [
-      { key: 'name',   placeholder: 'e.g., Jane Doe' },
-      { key: 'title',  placeholder: 'e.g., Chief Data Officer' },
-      { key: 'role',   placeholder: 'e.g., Chair' },
-      { key: 'voting', placeholder: 'e.g., Voting' }
+    const textFields = [
+      { key: 'name', placeholder: 'e.g., Jane Doe', label: 'Name' },
+      { key: 'title', placeholder: 'e.g., Chief Data Officer', label: 'Title' },
+      { key: 'role', placeholder: 'e.g., Chair', label: 'Role' }
     ];
 
-    fields.forEach(({ key, placeholder }) => {
+    textFields.forEach(({ key, placeholder, label }) => {
       const td = document.createElement('td');
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'members-input';
       input.placeholder = placeholder;
       input.value = data[key] || '';
-      input.setAttribute('aria-label', MEMBER_COLUMNS[fields.findIndex(f => f.key === key)]);
+      input.setAttribute('aria-label', label);
       input.addEventListener('input', updateHelpers);
       td.appendChild(input);
       tr.appendChild(td);
     });
 
-    // Delete button cell
+    const tdVoting = document.createElement('td');
+    const select = document.createElement('select');
+    select.className = 'members-input';
+    select.setAttribute('aria-label', 'Voting Status');
+
+    VOTING_OPTIONS.forEach((optionValue) => {
+      const option = document.createElement('option');
+      option.value = optionValue;
+      option.textContent = optionValue || 'Select status';
+      select.appendChild(option);
+    });
+
+    select.value = data.voting || '';
+    select.addEventListener('change', updateHelpers);
+    tdVoting.appendChild(select);
+    tr.appendChild(tdVoting);
+
     const tdDel = document.createElement('td');
     tdDel.className = 'members-cell--delete';
+
     const delBtn = document.createElement('button');
     delBtn.type = 'button';
     delBtn.className = 'members-delete-btn';
@@ -179,8 +215,12 @@ document.addEventListener('DOMContentLoaded', () => {
     delBtn.innerHTML = '&times;';
     delBtn.addEventListener('click', () => {
       tr.remove();
+      if (!membersTbody?.querySelector('tr.members-row')) {
+        initMembersTable();
+      }
       updateHelpers();
     });
+
     tdDel.appendChild(delBtn);
     tr.appendChild(tdDel);
 
@@ -196,44 +236,30 @@ document.addEventListener('DOMContentLoaded', () => {
   function populateMembersTable(members) {
     if (!membersTbody) return;
     membersTbody.innerHTML = '';
-    members.forEach((m) => membersTbody.appendChild(createMemberRow(m)));
+    members.forEach((member) => membersTbody.appendChild(createMemberRow(member)));
   }
 
   function clearMembersTable() {
-    if (!membersTbody) return;
-    membersTbody.innerHTML = '';
-    membersTbody.appendChild(createMemberRow());
+    initMembersTable();
   }
 
   function getMemberRows() {
     if (!membersTbody) return [];
+
     return Array.from(membersTbody.querySelectorAll('tr.members-row')).map((tr) => {
-      const inputs = tr.querySelectorAll('input.members-input');
+      const fields = tr.querySelectorAll('.members-input');
       return {
-        name:   inputs[0]?.value.trim() || '',
-        title:  inputs[1]?.value.trim() || '',
-        role:   inputs[2]?.value.trim() || '',
-        voting: inputs[3]?.value.trim() || ''
+        name: fields[0]?.value.trim() || '',
+        title: fields[1]?.value.trim() || '',
+        role: fields[2]?.value.trim() || '',
+        voting: fields[3]?.value.trim() || ''
       };
     });
   }
 
   function hasMemberData() {
-    return getMemberRows().some((r) => r.name || r.title || r.role || r.voting);
+    return getMemberRows().some((row) => row.name || row.title || row.role || row.voting);
   }
-
-  if (addMemberBtn) {
-    addMemberBtn.addEventListener('click', () => {
-      if (membersTbody) {
-        const newRow = createMemberRow();
-        membersTbody.appendChild(newRow);
-        // Focus the first input in the new row
-        newRow.querySelector('input')?.focus();
-      }
-    });
-  }
-
-  // ─── Field helpers ─────────────────────────────────────────────────────────
 
   function getField(id) {
     return document.getElementById(id);
@@ -327,8 +353,6 @@ document.addEventListener('DOMContentLoaded', () => {
     return { isValid: !firstInvalid, firstInvalid };
   }
 
-  // ─── Progress & filename ───────────────────────────────────────────────────
-
   function updateFilenamePreview() {
     if (!filenamePreview) return;
     const charterName = getValue('charter-name', DEFAULTS['charter-name']);
@@ -357,12 +381,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  function updateJumpToTopVisibility() {
+    if (!jumpToTopButton) return;
+
+    const triggerPoint = Math.max(420, window.innerHeight * 0.6);
+    const shouldShow = window.scrollY > triggerPoint;
+    jumpToTopButton.classList.toggle('is-visible', shouldShow);
+  }
+
+  function handleJumpToTop() {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  }
+
   function updateHelpers() {
     updateFilenamePreview();
     updateCompletion();
   }
-
-  // ─── Starter content ───────────────────────────────────────────────────────
 
   function fillStarterContent() {
     Object.entries(DEFAULTS).forEach(([id, value]) => {
@@ -380,8 +417,6 @@ document.addEventListener('DOMContentLoaded', () => {
     updateHelpers();
     setStatus('Starter content loaded. Review and customize before export.', 'success');
   }
-
-  // ─── docx builder helpers ──────────────────────────────────────────────────
 
   function blankParagraph(after = 120) {
     return new docx.Paragraph({ text: '', spacing: { after } });
@@ -431,23 +466,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  const TABLE_BORDERS = {
-    top:                { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'C8B9A6' },
-    bottom:             { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'C8B9A6' },
-    left:               { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'C8B9A6' },
-    right:              { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'C8B9A6' },
-    insideHorizontal:   { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'E8DDD0' },
-    insideVertical:     { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'E8DDD0' }
-  };
-
   function getTableBorders() {
     return {
-      top:              { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-      bottom:           { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-      left:             { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-      right:            { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+      top: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+      bottom: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+      left: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+      right: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
       insideHorizontal: { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' },
-      insideVertical:   { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' }
+      insideVertical: { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' }
     };
   }
 
@@ -502,19 +528,20 @@ document.addEventListener('DOMContentLoaded', () => {
             tableCell(header, { bold: true, shading: headerFill, color: headerTextColor })
           )
         }),
-        ...rows.map(
-          (row, index) =>
-            new docx.TableRow({
-              children: row.map((value) =>
-                tableCell(value, { shading: index % 2 === 0 ? 'FFFFFF' : 'FBF8F2' })
-              )
-            })
+        ...rows.map((row, index) =>
+          new docx.TableRow({
+            children: row.map((value) =>
+              tableCell(value, { shading: index % 2 === 0 ? 'FFFFFF' : 'FBF8F2' })
+            )
+          })
         )
       ]
     });
   }
 
   function createMembersDocTable(members) {
+    const rows = members.length > 0 ? members : [{ name: '', title: '', role: '', voting: '' }];
+
     return new docx.Table({
       width: { size: 100, type: docx.WidthType.PERCENTAGE },
       layout: docx.TableLayoutType.FIXED,
@@ -526,10 +553,10 @@ document.addEventListener('DOMContentLoaded', () => {
             tableCell(col, { bold: true, shading: '2F5D50', color: 'FFFFFF' })
           )
         }),
-        ...members.map((m, index) =>
+        ...rows.map((member, index) =>
           new docx.TableRow({
-            children: [m.name, m.title, m.role, m.voting].map((val) =>
-              tableCell(val, { shading: index % 2 === 0 ? 'FFFFFF' : 'FBF8F2' })
+            children: [member.name, member.title, member.role, member.voting].map((value) =>
+              tableCell(value, { shading: index % 2 === 0 ? 'FFFFFF' : 'FBF8F2' })
             )
           })
         )
@@ -542,8 +569,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!Array.isArray(content) || content.length === 0) return [];
     return [heading(title, docx.HeadingLevel.HEADING_1, color), ...content, blankParagraph()];
   }
-
-  // ─── Build document ────────────────────────────────────────────────────────
 
   function buildDocument() {
     const charterName = getValue('charter-name', DEFAULTS['charter-name']);
@@ -566,9 +591,12 @@ document.addEventListener('DOMContentLoaded', () => {
       ['Term & Review Cycle', termReview]
     ]);
 
-    const memberRows = getMemberRows().filter((r) => r.name || r.title || r.role || r.voting);
-    const membersForDoc = memberRows.length > 0 ? memberRows : DEFAULT_MEMBERS;
-    const membersDocTable = createMembersDocTable(membersForDoc);
+    const memberRows = getMemberRows().filter((row) => row.name || row.title || row.role || row.voting);
+    const votingMembers = memberRows.filter((row) => row.voting === 'Voting');
+    const nonVotingMembers = memberRows.filter((row) => row.voting === 'Non-Voting');
+
+    const votingMembersTable = createMembersDocTable(votingMembers);
+    const nonVotingMembersTable = createMembersDocTable(nonVotingMembers);
 
     const versionHistoryTable = createDataTable(
       ['Version', 'Date', 'Author', 'Summary of Changes'],
@@ -614,8 +642,10 @@ document.addEventListener('DOMContentLoaded', () => {
       ),
 
       ...createSection('7. Membership & Representation', '2F5D50', () => [
-        heading('Committee Members', docx.HeadingLevel.HEADING_2, '2F5D50'),
-        membersDocTable,
+        heading('Committee Members - Voting', docx.HeadingLevel.HEADING_2, '2F5D50'),
+        votingMembersTable,
+        heading('Committee Members - Non-Voting', docx.HeadingLevel.HEADING_2, '2F5D50'),
+        nonVotingMembersTable,
         heading('Required Functions / Perspectives', docx.HeadingLevel.HEADING_2, '2F5D50'),
         ...bulletList(getValue('required-functions', DEFAULTS['required-functions'])),
         heading('Role Definitions', docx.HeadingLevel.HEADING_2, '2F5D50'),
@@ -637,6 +667,7 @@ document.addEventListener('DOMContentLoaded', () => {
           ['Quorum', getValue('quorum', DEFAULTS.quorum)],
           ['Decision-Making Process', getValue('decision-making', DEFAULTS['decision-making'])]
         ]);
+
         return [
           operatingModelTable,
           heading('Meeting Administration', docx.HeadingLevel.HEADING_2, '5A2D5C'),
@@ -654,14 +685,17 @@ document.addEventListener('DOMContentLoaded', () => {
           content.push(heading('Policy / Legal / Regulatory Alignment', docx.HeadingLevel.HEADING_2, '5A2D5C'));
           content.push(...multiParagraphs(policyAlignment));
         }
+
         if (privacySecurity) {
           content.push(heading('Privacy, Security & Data Release Considerations', docx.HeadingLevel.HEADING_2, '5A2D5C'));
           content.push(...multiParagraphs(privacySecurity));
         }
+
         if (dataSharing) {
           content.push(heading('Data Sharing & Access Considerations', docx.HeadingLevel.HEADING_2, '5A2D5C'));
           content.push(...multiParagraphs(dataSharing));
         }
+
         return content;
       }),
 
@@ -681,14 +715,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ─── Event listeners ───────────────────────────────────────────────────────
-
   form.addEventListener('input', (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
+
     if (target.id && REQUIRED_FIELD_IDS.includes(target.id)) {
       setAriaInvalid(target.id, !getOptionalValue(target.id));
     }
+
     updateHelpers();
   });
 
@@ -705,6 +739,23 @@ document.addEventListener('DOMContentLoaded', () => {
     fillButton.addEventListener('click', fillStarterContent);
   }
 
+  if (addMemberBtn) {
+    addMemberBtn.addEventListener('click', () => {
+      if (!membersTbody) return;
+      const newRow = createMemberRow();
+      membersTbody.appendChild(newRow);
+      newRow.querySelector('input, select')?.focus();
+      updateHelpers();
+    });
+  }
+
+  if (jumpToTopButton) {
+    jumpToTopButton.addEventListener('click', handleJumpToTop);
+  }
+
+  window.addEventListener('scroll', updateJumpToTopVisibility, { passive: true });
+  window.addEventListener('resize', updateJumpToTopVisibility);
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
 
@@ -715,7 +766,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    docx = window.docx;
+    docx = resolveDocx();
 
     if (!docx || typeof window.saveAs !== 'function') {
       setStatus('Document libraries did not load. Refresh the page and try again.', 'error');
@@ -747,8 +798,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ─── Init ──────────────────────────────────────────────────────────────────
-
   initMembersTable();
   updateHelpers();
+  updateJumpToTopVisibility();
 });
