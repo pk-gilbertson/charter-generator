@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitLabel = submitButton?.textContent?.trim() || 'Generate Charter (.docx)';
   const membersTbody = document.getElementById('members-tbody');
   const addMemberBtn = document.getElementById('add-member-row');
+  const committeeTypeSelect = document.getElementById('committee-type');
 
   // docx is resolved once at submit time, after CDN scripts have loaded.
   let docx = null;
@@ -142,6 +143,17 @@ document.addEventListener('DOMContentLoaded', () => {
     'meeting-frequency'
   ];
 
+  const COMMITTEE_TYPE_DEFINITIONS = {
+    'Data Governance Steering Committee': 'Formal body with oversight and decision-making authority for governance.',
+    'Data Governance Advisory Group': 'Provides guidance and recommendations, but does not usually hold final authority.',
+    'Data Stewardship Council': 'Focuses on operational governance, stewardship, data quality, and standards.',
+    'Working Group': 'Temporary or task-focused group addressing a specific governance need.',
+    'Cross-Agency Governance Group': 'Coordinates governance across multiple agencies or departments.',
+    Other: 'Use when the group follows a different or custom governance model.'
+  };
+
+  let syncCommitteeTypePicker = () => {};
+
   // ─── Members table ─────────────────────────────────────────────────────────
 
   function createMemberRow(data = {}) {
@@ -254,6 +266,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const field = getField(id);
     if (!field) return;
     field.value = value;
+
+    if (id === 'committee-type') {
+      field.dispatchEvent(new Event('change', { bubbles: true }));
+    }
   }
 
   function setStatus(message = '', state = '') {
@@ -325,6 +341,293 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     return { isValid: !firstInvalid, firstInvalid };
+  }
+
+  // ─── Committee type picker ──────────────────────────────────────────────────
+
+  function enhanceCommitteeTypePicker() {
+    if (!committeeTypeSelect) return;
+
+    const fieldGroup = committeeTypeSelect.closest('.field-group');
+    const label = form.querySelector('label[for="committee-type"]');
+
+    if (!fieldGroup || !label) return;
+
+    if (!label.id) {
+      label.id = 'committee-type-label';
+    }
+
+    const triggerId = 'committee-type-trigger';
+    const listboxId = 'committee-type-listbox';
+    const buttonTextId = 'committee-type-trigger-text';
+    const definitionId = 'committee-type-definition';
+
+    label.setAttribute('for', triggerId);
+    committeeTypeSelect.classList.add('committee-picker__native');
+    committeeTypeSelect.setAttribute('tabindex', '-1');
+    committeeTypeSelect.setAttribute('aria-hidden', 'true');
+
+    const picker = document.createElement('div');
+    picker.className = 'committee-picker';
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.id = triggerId;
+    trigger.className = 'committee-picker__trigger';
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    trigger.setAttribute('aria-controls', listboxId);
+    trigger.setAttribute('aria-labelledby', `${label.id} ${buttonTextId}`);
+
+    const triggerText = document.createElement('span');
+    triggerText.id = buttonTextId;
+    triggerText.className = 'committee-picker__trigger-text';
+
+    const triggerIcon = document.createElement('span');
+    triggerIcon.className = 'committee-picker__trigger-icon';
+    triggerIcon.setAttribute('aria-hidden', 'true');
+    triggerIcon.textContent = '▾';
+
+    trigger.append(triggerText, triggerIcon);
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'committee-picker__dropdown';
+    dropdown.hidden = true;
+
+    const definitionPanel = document.createElement('div');
+    definitionPanel.className = 'committee-picker__definition-panel';
+
+    const definitionLabel = document.createElement('p');
+    definitionLabel.className = 'committee-picker__definition-label';
+    definitionLabel.textContent = 'Definition';
+
+    const definitionText = document.createElement('p');
+    definitionText.id = definitionId;
+    definitionText.className = 'committee-picker__definition-text';
+    definitionText.setAttribute('aria-live', 'polite');
+
+    const definitionHint = document.createElement('p');
+    definitionHint.className = 'committee-picker__definition-hint';
+    definitionHint.textContent = 'Open the list, then hover or focus an option to preview its meaning before selecting it.';
+
+    definitionPanel.append(definitionLabel, definitionText, definitionHint);
+
+    const optionsList = document.createElement('ul');
+    optionsList.id = listboxId;
+    optionsList.className = 'committee-picker__options';
+    optionsList.setAttribute('role', 'listbox');
+    optionsList.setAttribute('aria-labelledby', label.id);
+    optionsList.setAttribute('aria-describedby', definitionId);
+
+    const optionElements = committeeTypeSelect.options ? Array.from(committeeTypeSelect.options).map((option, index) => {
+      const item = document.createElement('li');
+      item.className = 'committee-picker__option-item';
+
+      const optionEl = document.createElement('div');
+      optionEl.id = `committee-type-option-${index}`;
+      optionEl.className = 'committee-picker__option';
+      optionEl.setAttribute('role', 'option');
+      optionEl.setAttribute('tabindex', '-1');
+      optionEl.dataset.index = String(index);
+      optionEl.dataset.value = option.value;
+      optionEl.dataset.definition = COMMITTEE_TYPE_DEFINITIONS[option.value] || COMMITTEE_TYPE_DEFINITIONS.Other;
+      optionEl.textContent = option.textContent.trim();
+
+      item.appendChild(optionEl);
+      optionsList.appendChild(item);
+      return optionEl;
+    }) : [];
+
+    dropdown.append(definitionPanel, optionsList);
+    committeeTypeSelect.insertAdjacentElement('afterend', picker);
+    picker.append(trigger, dropdown);
+
+    let isOpen = false;
+    let activeIndex = Math.max(committeeTypeSelect.selectedIndex, 0);
+
+    function getSelectedIndex() {
+      return Math.max(committeeTypeSelect.selectedIndex, 0);
+    }
+
+    function updateDefinition(index) {
+      const optionEl = optionElements[index];
+      if (!optionEl) return;
+
+      activeIndex = index;
+      definitionText.textContent = optionEl.dataset.definition || '';
+      optionsList.setAttribute('aria-activedescendant', optionEl.id);
+
+      optionElements.forEach((candidate, candidateIndex) => {
+        candidate.classList.toggle('is-active', candidateIndex == index);
+      });
+    }
+
+    function syncSelectedOption() {
+      const selectedIndex = getSelectedIndex();
+      const selectedOption = optionElements[selectedIndex];
+      const selectedText = committeeTypeSelect.options[selectedIndex]?.textContent?.trim() || committeeTypeSelect.value || '';
+
+      triggerText.textContent = selectedText;
+
+      optionElements.forEach((optionEl, index) => {
+        const isSelected = index === selectedIndex;
+        optionEl.setAttribute('aria-selected', String(isSelected));
+        optionEl.classList.toggle('is-selected', isSelected);
+      });
+
+      if (!isOpen) {
+        updateDefinition(selectedIndex);
+      }
+    }
+
+    function focusOption(index) {
+      const normalizedIndex = Math.max(0, Math.min(index, optionElements.length - 1));
+      updateDefinition(normalizedIndex);
+      optionElements[normalizedIndex]?.focus();
+    }
+
+    function openDropdown({ focusSelected = false } = {}) {
+      if (!optionElements.length) return;
+      isOpen = true;
+      picker.classList.add('is-open');
+      dropdown.hidden = false;
+      trigger.setAttribute('aria-expanded', 'true');
+
+      const startIndex = focusSelected ? getSelectedIndex() : activeIndex;
+      updateDefinition(startIndex);
+
+      if (focusSelected) {
+        focusOption(startIndex);
+      }
+    }
+
+    function closeDropdown({ returnFocus = false } = {}) {
+      isOpen = false;
+      picker.classList.remove('is-open');
+      dropdown.hidden = true;
+      trigger.setAttribute('aria-expanded', 'false');
+      syncSelectedOption();
+
+      if (returnFocus) {
+        trigger.focus();
+      }
+    }
+
+    function commitSelection(index) {
+      const normalizedIndex = Math.max(0, Math.min(index, optionElements.length - 1));
+      const nextValue = optionElements[normalizedIndex]?.dataset.value;
+      if (!nextValue) return;
+
+      committeeTypeSelect.selectedIndex = normalizedIndex;
+      committeeTypeSelect.value = nextValue;
+      syncSelectedOption();
+      committeeTypeSelect.dispatchEvent(new Event('input', { bubbles: true }));
+      committeeTypeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+      closeDropdown({ returnFocus: true });
+    }
+
+    trigger.addEventListener('click', () => {
+      if (isOpen) {
+        closeDropdown();
+      } else {
+        openDropdown();
+      }
+    });
+
+    trigger.addEventListener('keydown', (event) => {
+      if (!optionElements.length) return;
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        if (!isOpen) {
+          openDropdown({ focusSelected: true });
+        } else {
+          focusOption(activeIndex + 1);
+        }
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (!isOpen) {
+          openDropdown({ focusSelected: true });
+        } else {
+          focusOption(activeIndex - 1);
+        }
+      }
+
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        if (!isOpen) {
+          openDropdown({ focusSelected: true });
+        } else {
+          commitSelection(activeIndex);
+        }
+      }
+
+      if (event.key === 'Escape' && isOpen) {
+        event.preventDefault();
+        closeDropdown();
+      }
+    });
+
+    optionElements.forEach((optionEl, index) => {
+      optionEl.addEventListener('mouseenter', () => updateDefinition(index));
+      optionEl.addEventListener('focus', () => updateDefinition(index));
+      optionEl.addEventListener('click', () => commitSelection(index));
+      optionEl.addEventListener('keydown', (event) => {
+        if (event.key === 'ArrowDown') {
+          event.preventDefault();
+          focusOption(index + 1);
+        }
+
+        if (event.key === 'ArrowUp') {
+          event.preventDefault();
+          focusOption(index - 1);
+        }
+
+        if (event.key === 'Home') {
+          event.preventDefault();
+          focusOption(0);
+        }
+
+        if (event.key === 'End') {
+          event.preventDefault();
+          focusOption(optionElements.length - 1);
+        }
+
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          commitSelection(index);
+        }
+
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          closeDropdown({ returnFocus: true });
+        }
+
+        if (event.key === 'Tab') {
+          closeDropdown();
+        }
+      });
+    });
+
+    document.addEventListener('pointerdown', (event) => {
+      const target = event.target;
+      if (!isOpen || !(target instanceof Node)) return;
+      if (!picker.contains(target)) {
+        closeDropdown();
+      }
+    });
+
+    committeeTypeSelect.addEventListener('change', syncSelectedOption);
+    committeeTypeSelect.addEventListener('input', syncSelectedOption);
+
+    syncCommitteeTypePicker = () => {
+      syncSelectedOption();
+      closeDropdown();
+    };
+
+    syncSelectedOption();
   }
 
   // ─── Progress & filename ───────────────────────────────────────────────────
@@ -697,6 +1000,7 @@ document.addEventListener('DOMContentLoaded', () => {
       REQUIRED_FIELD_IDS.forEach((id) => setAriaInvalid(id, false));
       setStatus('');
       clearMembersTable();
+      syncCommitteeTypePicker();
       updateHelpers();
     }, 0);
   });
@@ -749,6 +1053,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ─── Init ──────────────────────────────────────────────────────────────────
 
+  enhanceCommitteeTypePicker();
   initMembersTable();
   updateHelpers();
 });
