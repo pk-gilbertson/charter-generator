@@ -9,9 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitLabel = submitButton?.textContent?.trim() || 'Generate Charter (.docx)';
   const membersTbody = document.getElementById('members-tbody');
   const addMemberBtn = document.getElementById('add-member-row');
-  const committeeTypeSelect = document.getElementById('committee-type');
-
-  // docx is resolved once at submit time, after CDN scripts have loaded.
+  const jumpTopButton = document.getElementById('jump-to-top');
   let docx = null;
 
   if (!form) {
@@ -19,9 +17,22 @@ document.addEventListener('DOMContentLoaded', () => {
     return;
   }
 
-  // ─── Constants ────────────────────────────────────────────────────────────
-
   const MEMBER_COLUMNS = ['Name', 'Title', 'Role', 'Voting Status'];
+
+  const COMMITTEE_TYPE_DEFINITIONS = {
+    'Data Governance Steering Committee':
+      'Formal body with oversight and decision-making authority for governance.',
+    'Data Governance Advisory Group':
+      'Provides guidance and recommendations, but does not usually hold final authority.',
+    'Data Stewardship Council':
+      'Focuses on operational governance, stewardship, data quality, and standards.',
+    'Working Group':
+      'Temporary or task-focused group addressing a specific governance need.',
+    'Cross-Agency Governance Group':
+      'Coordinates governance across multiple agencies or departments.',
+    Other:
+      'Use when the group follows a different or custom governance model.'
+  };
 
   const DEFAULT_MEMBERS = [
     { name: 'Jane Doe', title: 'Chief Data Officer', role: 'Chair', voting: 'Voting' },
@@ -143,44 +154,67 @@ document.addEventListener('DOMContentLoaded', () => {
     'meeting-frequency'
   ];
 
-  const COMMITTEE_TYPE_DEFINITIONS = {
-    'Data Governance Steering Committee': 'Formal body with oversight and decision-making authority for governance.',
-    'Data Governance Advisory Group': 'Provides guidance and recommendations, but does not usually hold final authority.',
-    'Data Stewardship Council': 'Focuses on operational governance, stewardship, data quality, and standards.',
-    'Working Group': 'Temporary or task-focused group addressing a specific governance need.',
-    'Cross-Agency Governance Group': 'Coordinates governance across multiple agencies or departments.',
-    Other: 'Use when the group follows a different or custom governance model.'
-  };
+  function getJumpThreshold() {
+    return Math.max(360, Math.round(window.innerHeight * 0.45));
+  }
 
-  let syncCommitteeTypePicker = () => {};
+  function updateJumpTopVisibility() {
+    if (!jumpTopButton) return;
+    const shouldShow = window.scrollY > getJumpThreshold();
+    jumpTopButton.classList.toggle('is-visible', shouldShow);
+  }
 
-  // ─── Members table ─────────────────────────────────────────────────────────
+  function scrollToTop() {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, behavior: reducedMotion ? 'auto' : 'smooth' });
+  }
+
+  function resolveDocx() {
+    const library = window.docx;
+    if (!library) return null;
+    const requiredKeys = [
+      'Document',
+      'Paragraph',
+      'TextRun',
+      'Table',
+      'TableRow',
+      'TableCell',
+      'HeadingLevel',
+      'AlignmentType',
+      'WidthType',
+      'TableLayoutType',
+      'VerticalAlign',
+      'BorderStyle',
+      'Packer'
+    ];
+    const hasAllKeys = requiredKeys.every((key) => key in library);
+    return hasAllKeys ? library : null;
+  }
 
   function createMemberRow(data = {}) {
     const tr = document.createElement('tr');
     tr.className = 'members-row';
 
     const fields = [
-      { key: 'name',   placeholder: 'e.g., Jane Doe' },
-      { key: 'title',  placeholder: 'e.g., Chief Data Officer' },
-      { key: 'role',   placeholder: 'e.g., Chair' },
+      { key: 'name', placeholder: 'e.g., Jane Doe' },
+      { key: 'title', placeholder: 'e.g., Chief Data Officer' },
+      { key: 'role', placeholder: 'e.g., Chair' },
       { key: 'voting', placeholder: 'e.g., Voting' }
     ];
 
-    fields.forEach(({ key, placeholder }) => {
+    fields.forEach(({ key, placeholder }, index) => {
       const td = document.createElement('td');
       const input = document.createElement('input');
       input.type = 'text';
       input.className = 'members-input';
       input.placeholder = placeholder;
       input.value = data[key] || '';
-      input.setAttribute('aria-label', MEMBER_COLUMNS[fields.findIndex(f => f.key === key)]);
+      input.setAttribute('aria-label', MEMBER_COLUMNS[index]);
       input.addEventListener('input', updateHelpers);
       td.appendChild(input);
       tr.appendChild(td);
     });
 
-    // Delete button cell
     const tdDel = document.createElement('td');
     tdDel.className = 'members-cell--delete';
     const delBtn = document.createElement('button');
@@ -191,6 +225,9 @@ document.addEventListener('DOMContentLoaded', () => {
     delBtn.innerHTML = '&times;';
     delBtn.addEventListener('click', () => {
       tr.remove();
+      if (!membersTbody?.querySelector('tr.members-row')) {
+        initMembersTable();
+      }
       updateHelpers();
     });
     tdDel.appendChild(delBtn);
@@ -208,13 +245,11 @@ document.addEventListener('DOMContentLoaded', () => {
   function populateMembersTable(members) {
     if (!membersTbody) return;
     membersTbody.innerHTML = '';
-    members.forEach((m) => membersTbody.appendChild(createMemberRow(m)));
+    members.forEach((member) => membersTbody.appendChild(createMemberRow(member)));
   }
 
   function clearMembersTable() {
-    if (!membersTbody) return;
-    membersTbody.innerHTML = '';
-    membersTbody.appendChild(createMemberRow());
+    initMembersTable();
   }
 
   function getMemberRows() {
@@ -222,30 +257,27 @@ document.addEventListener('DOMContentLoaded', () => {
     return Array.from(membersTbody.querySelectorAll('tr.members-row')).map((tr) => {
       const inputs = tr.querySelectorAll('input.members-input');
       return {
-        name:   inputs[0]?.value.trim() || '',
-        title:  inputs[1]?.value.trim() || '',
-        role:   inputs[2]?.value.trim() || '',
+        name: inputs[0]?.value.trim() || '',
+        title: inputs[1]?.value.trim() || '',
+        role: inputs[2]?.value.trim() || '',
         voting: inputs[3]?.value.trim() || ''
       };
     });
   }
 
   function hasMemberData() {
-    return getMemberRows().some((r) => r.name || r.title || r.role || r.voting);
+    return getMemberRows().some((row) => row.name || row.title || row.role || row.voting);
   }
 
   if (addMemberBtn) {
     addMemberBtn.addEventListener('click', () => {
-      if (membersTbody) {
-        const newRow = createMemberRow();
-        membersTbody.appendChild(newRow);
-        // Focus the first input in the new row
-        newRow.querySelector('input')?.focus();
-      }
+      if (!membersTbody) return;
+      const newRow = createMemberRow();
+      membersTbody.appendChild(newRow);
+      newRow.querySelector('input')?.focus();
+      updateHelpers();
     });
   }
-
-  // ─── Field helpers ─────────────────────────────────────────────────────────
 
   function getField(id) {
     return document.getElementById(id);
@@ -266,10 +298,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const field = getField(id);
     if (!field) return;
     field.value = value;
-
-    if (id === 'committee-type') {
-      field.dispatchEvent(new Event('change', { bubbles: true }));
-    }
   }
 
   function setStatus(message = '', state = '') {
@@ -298,12 +326,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const rawParts = String(line || '')
       .split(',')
       .map((part) => part.trim());
-
     if (rawParts.length <= expectedParts) {
       while (rawParts.length < expectedParts) rawParts.push('');
       return rawParts;
     }
-
     const fixed = rawParts.slice(0, expectedParts - 1);
     fixed.push(rawParts.slice(expectedParts - 1).join(', ').trim());
     return fixed;
@@ -313,7 +339,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!dateString) return '';
     const date = new Date(`${dateString}T00:00:00`);
     if (Number.isNaN(date.getTime())) return dateString;
-
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -333,304 +358,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function validateForm() {
     let firstInvalid = null;
-
     REQUIRED_FIELD_IDS.forEach((id) => {
       const invalid = !getOptionalValue(id);
       setAriaInvalid(id, invalid);
       if (invalid && !firstInvalid) firstInvalid = getField(id);
     });
-
     return { isValid: !firstInvalid, firstInvalid };
   }
-
-  // ─── Committee type picker ──────────────────────────────────────────────────
-
-  function enhanceCommitteeTypePicker() {
-    if (!committeeTypeSelect) return;
-
-    const fieldGroup = committeeTypeSelect.closest('.field-group');
-    const label = form.querySelector('label[for="committee-type"]');
-
-    if (!fieldGroup || !label) return;
-
-    if (!label.id) {
-      label.id = 'committee-type-label';
-    }
-
-    const triggerId = 'committee-type-trigger';
-    const listboxId = 'committee-type-listbox';
-    const buttonTextId = 'committee-type-trigger-text';
-    const definitionId = 'committee-type-definition';
-
-    label.setAttribute('for', triggerId);
-    committeeTypeSelect.classList.add('committee-picker__native');
-    committeeTypeSelect.setAttribute('tabindex', '-1');
-    committeeTypeSelect.setAttribute('aria-hidden', 'true');
-
-    const picker = document.createElement('div');
-    picker.className = 'committee-picker';
-
-    const trigger = document.createElement('button');
-    trigger.type = 'button';
-    trigger.id = triggerId;
-    trigger.className = 'committee-picker__trigger';
-    trigger.setAttribute('aria-haspopup', 'listbox');
-    trigger.setAttribute('aria-expanded', 'false');
-    trigger.setAttribute('aria-controls', listboxId);
-    trigger.setAttribute('aria-labelledby', `${label.id} ${buttonTextId}`);
-
-    const triggerText = document.createElement('span');
-    triggerText.id = buttonTextId;
-    triggerText.className = 'committee-picker__trigger-text';
-
-    const triggerIcon = document.createElement('span');
-    triggerIcon.className = 'committee-picker__trigger-icon';
-    triggerIcon.setAttribute('aria-hidden', 'true');
-    triggerIcon.textContent = '▾';
-
-    trigger.append(triggerText, triggerIcon);
-
-    const dropdown = document.createElement('div');
-    dropdown.className = 'committee-picker__dropdown';
-    dropdown.hidden = true;
-
-    const definitionPanel = document.createElement('div');
-    definitionPanel.className = 'committee-picker__definition-panel';
-
-    const definitionLabel = document.createElement('p');
-    definitionLabel.className = 'committee-picker__definition-label';
-    definitionLabel.textContent = 'Definition';
-
-    const definitionText = document.createElement('p');
-    definitionText.id = definitionId;
-    definitionText.className = 'committee-picker__definition-text';
-    definitionText.setAttribute('aria-live', 'polite');
-
-    const definitionHint = document.createElement('p');
-    definitionHint.className = 'committee-picker__definition-hint';
-    definitionHint.textContent = 'Open the list, then hover or focus an option to preview its meaning before selecting it.';
-
-    definitionPanel.append(definitionLabel, definitionText, definitionHint);
-
-    const optionsList = document.createElement('ul');
-    optionsList.id = listboxId;
-    optionsList.className = 'committee-picker__options';
-    optionsList.setAttribute('role', 'listbox');
-    optionsList.setAttribute('aria-labelledby', label.id);
-    optionsList.setAttribute('aria-describedby', definitionId);
-
-    const optionElements = committeeTypeSelect.options ? Array.from(committeeTypeSelect.options).map((option, index) => {
-      const item = document.createElement('li');
-      item.className = 'committee-picker__option-item';
-
-      const optionEl = document.createElement('div');
-      optionEl.id = `committee-type-option-${index}`;
-      optionEl.className = 'committee-picker__option';
-      optionEl.setAttribute('role', 'option');
-      optionEl.setAttribute('tabindex', '-1');
-      optionEl.dataset.index = String(index);
-      optionEl.dataset.value = option.value;
-      optionEl.dataset.definition = COMMITTEE_TYPE_DEFINITIONS[option.value] || COMMITTEE_TYPE_DEFINITIONS.Other;
-      optionEl.textContent = option.textContent.trim();
-
-      item.appendChild(optionEl);
-      optionsList.appendChild(item);
-      return optionEl;
-    }) : [];
-
-    dropdown.append(definitionPanel, optionsList);
-    committeeTypeSelect.insertAdjacentElement('afterend', picker);
-    picker.append(trigger, dropdown);
-
-    let isOpen = false;
-    let activeIndex = Math.max(committeeTypeSelect.selectedIndex, 0);
-
-    function getSelectedIndex() {
-      return Math.max(committeeTypeSelect.selectedIndex, 0);
-    }
-
-    function updateDefinition(index) {
-      const optionEl = optionElements[index];
-      if (!optionEl) return;
-
-      activeIndex = index;
-      definitionText.textContent = optionEl.dataset.definition || '';
-      optionsList.setAttribute('aria-activedescendant', optionEl.id);
-
-      optionElements.forEach((candidate, candidateIndex) => {
-        candidate.classList.toggle('is-active', candidateIndex == index);
-      });
-    }
-
-    function syncSelectedOption() {
-      const selectedIndex = getSelectedIndex();
-      const selectedOption = optionElements[selectedIndex];
-      const selectedText = committeeTypeSelect.options[selectedIndex]?.textContent?.trim() || committeeTypeSelect.value || '';
-
-      triggerText.textContent = selectedText;
-
-      optionElements.forEach((optionEl, index) => {
-        const isSelected = index === selectedIndex;
-        optionEl.setAttribute('aria-selected', String(isSelected));
-        optionEl.classList.toggle('is-selected', isSelected);
-      });
-
-      if (!isOpen) {
-        updateDefinition(selectedIndex);
-      }
-    }
-
-    function focusOption(index) {
-      const normalizedIndex = Math.max(0, Math.min(index, optionElements.length - 1));
-      updateDefinition(normalizedIndex);
-      optionElements[normalizedIndex]?.focus();
-    }
-
-    function openDropdown({ focusSelected = false } = {}) {
-      if (!optionElements.length) return;
-      isOpen = true;
-      picker.classList.add('is-open');
-      dropdown.hidden = false;
-      trigger.setAttribute('aria-expanded', 'true');
-
-      const startIndex = focusSelected ? getSelectedIndex() : activeIndex;
-      updateDefinition(startIndex);
-
-      if (focusSelected) {
-        focusOption(startIndex);
-      }
-    }
-
-    function closeDropdown({ returnFocus = false } = {}) {
-      isOpen = false;
-      picker.classList.remove('is-open');
-      dropdown.hidden = true;
-      trigger.setAttribute('aria-expanded', 'false');
-      syncSelectedOption();
-
-      if (returnFocus) {
-        trigger.focus();
-      }
-    }
-
-    function commitSelection(index) {
-      const normalizedIndex = Math.max(0, Math.min(index, optionElements.length - 1));
-      const nextValue = optionElements[normalizedIndex]?.dataset.value;
-      if (!nextValue) return;
-
-      committeeTypeSelect.selectedIndex = normalizedIndex;
-      committeeTypeSelect.value = nextValue;
-      syncSelectedOption();
-      committeeTypeSelect.dispatchEvent(new Event('input', { bubbles: true }));
-      committeeTypeSelect.dispatchEvent(new Event('change', { bubbles: true }));
-      closeDropdown({ returnFocus: true });
-    }
-
-    trigger.addEventListener('click', () => {
-      if (isOpen) {
-        closeDropdown();
-      } else {
-        openDropdown();
-      }
-    });
-
-    trigger.addEventListener('keydown', (event) => {
-      if (!optionElements.length) return;
-
-      if (event.key === 'ArrowDown') {
-        event.preventDefault();
-        if (!isOpen) {
-          openDropdown({ focusSelected: true });
-        } else {
-          focusOption(activeIndex + 1);
-        }
-      }
-
-      if (event.key === 'ArrowUp') {
-        event.preventDefault();
-        if (!isOpen) {
-          openDropdown({ focusSelected: true });
-        } else {
-          focusOption(activeIndex - 1);
-        }
-      }
-
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        if (!isOpen) {
-          openDropdown({ focusSelected: true });
-        } else {
-          commitSelection(activeIndex);
-        }
-      }
-
-      if (event.key === 'Escape' && isOpen) {
-        event.preventDefault();
-        closeDropdown();
-      }
-    });
-
-    optionElements.forEach((optionEl, index) => {
-      optionEl.addEventListener('mouseenter', () => updateDefinition(index));
-      optionEl.addEventListener('focus', () => updateDefinition(index));
-      optionEl.addEventListener('click', () => commitSelection(index));
-      optionEl.addEventListener('keydown', (event) => {
-        if (event.key === 'ArrowDown') {
-          event.preventDefault();
-          focusOption(index + 1);
-        }
-
-        if (event.key === 'ArrowUp') {
-          event.preventDefault();
-          focusOption(index - 1);
-        }
-
-        if (event.key === 'Home') {
-          event.preventDefault();
-          focusOption(0);
-        }
-
-        if (event.key === 'End') {
-          event.preventDefault();
-          focusOption(optionElements.length - 1);
-        }
-
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault();
-          commitSelection(index);
-        }
-
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          closeDropdown({ returnFocus: true });
-        }
-
-        if (event.key === 'Tab') {
-          closeDropdown();
-        }
-      });
-    });
-
-    document.addEventListener('pointerdown', (event) => {
-      const target = event.target;
-      if (!isOpen || !(target instanceof Node)) return;
-      if (!picker.contains(target)) {
-        closeDropdown();
-      }
-    });
-
-    committeeTypeSelect.addEventListener('change', syncSelectedOption);
-    committeeTypeSelect.addEventListener('input', syncSelectedOption);
-
-    syncCommitteeTypePicker = () => {
-      syncSelectedOption();
-      closeDropdown();
-    };
-
-    syncSelectedOption();
-  }
-
-  // ─── Progress & filename ───────────────────────────────────────────────────
 
   function updateFilenamePreview() {
     if (!filenamePreview) return;
@@ -640,23 +374,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function updateCompletion() {
     if (!completionText || !completionBar) return;
-
     const textCompleted = PROGRESS_FIELD_IDS.filter((id) => getOptionalValue(id)).length;
     const membersCompleted = hasMemberData() ? 1 : 0;
     const total = PROGRESS_FIELD_IDS.length + 1;
     const completed = textCompleted + membersCompleted;
     const percent = Math.round((completed / total) * 100);
-
     completionBar.style.width = `${percent}%`;
 
     if (percent < 35) {
       completionText.textContent = 'Start with the charter basics and purpose sections.';
     } else if (percent < 70) {
-      completionText.textContent = 'The draft is taking shape. Add membership, responsibilities, and operating details next.';
+      completionText.textContent =
+        'The draft is taking shape. Add membership, responsibilities, and operating details next.';
     } else if (percent < 100) {
-      completionText.textContent = 'Nearly complete. Review advanced sections and export when ready.';
+      completionText.textContent =
+        'Nearly complete. Review advanced sections and export when ready.';
     } else {
-      completionText.textContent = 'Core sections are complete. You are ready to generate the charter.';
+      completionText.textContent =
+        'Core sections are complete. You are ready to generate the charter.';
     }
   }
 
@@ -664,8 +399,6 @@ document.addEventListener('DOMContentLoaded', () => {
     updateFilenamePreview();
     updateCompletion();
   }
-
-  // ─── Starter content ───────────────────────────────────────────────────────
 
   function fillStarterContent() {
     Object.entries(DEFAULTS).forEach(([id, value]) => {
@@ -680,11 +413,10 @@ document.addEventListener('DOMContentLoaded', () => {
       populateMembersTable(DEFAULT_MEMBERS);
     }
 
+    committeeTypePicker?.syncFromNativeSelect();
     updateHelpers();
     setStatus('Starter content loaded. Review and customize before export.', 'success');
   }
-
-  // ─── docx builder helpers ──────────────────────────────────────────────────
 
   function blankParagraph(after = 120) {
     return new docx.Paragraph({ text: '', spacing: { after } });
@@ -711,7 +443,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function bulletList(text) {
     return toLines(text).map(
-      (item) => new docx.Paragraph({ text: item, bullet: { level: 0 }, spacing: { after: 80 } })
+      (item) =>
+        new docx.Paragraph({
+          text: item,
+          bullet: { level: 0 },
+          spacing: { after: 80 }
+        })
     );
   }
 
@@ -734,17 +471,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
- 
-  };
-
   function getTableBorders() {
     return {
-      top:              { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-      bottom:           { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-      left:             { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
-      right:            { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+      top: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+      bottom: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+      left: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
+      right: { style: docx.BorderStyle.SINGLE, size: 1, color: 'C8B9A6' },
       insideHorizontal: { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' },
-      insideVertical:   { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' }
+      insideVertical: { style: docx.BorderStyle.SINGLE, size: 1, color: 'E8DDD0' }
     };
   }
 
@@ -823,12 +557,13 @@ document.addEventListener('DOMContentLoaded', () => {
             tableCell(col, { bold: true, shading: '2F5D50', color: 'FFFFFF' })
           )
         }),
-        ...members.map((m, index) =>
-          new docx.TableRow({
-            children: [m.name, m.title, m.role, m.voting].map((val) =>
-              tableCell(val, { shading: index % 2 === 0 ? 'FFFFFF' : 'FBF8F2' })
-            )
-          })
+        ...members.map(
+          (member, index) =>
+            new docx.TableRow({
+              children: [member.name, member.title, member.role, member.voting].map((value) =>
+                tableCell(value, { shading: index % 2 === 0 ? 'FFFFFF' : 'FBF8F2' })
+              )
+            })
         )
       ]
     });
@@ -839,8 +574,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!Array.isArray(content) || content.length === 0) return [];
     return [heading(title, docx.HeadingLevel.HEADING_1, color), ...content, blankParagraph()];
   }
-
-  // ─── Build document ────────────────────────────────────────────────────────
 
   function buildDocument() {
     const charterName = getValue('charter-name', DEFAULTS['charter-name']);
@@ -863,7 +596,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ['Term & Review Cycle', termReview]
     ]);
 
-    const memberRows = getMemberRows().filter((r) => r.name || r.title || r.role || r.voting);
+    const memberRows = getMemberRows().filter((row) => row.name || row.title || row.role || row.voting);
     const membersForDoc = memberRows.length > 0 ? memberRows : DEFAULT_MEMBERS;
     const membersDocTable = createMembersDocTable(membersForDoc);
 
@@ -890,11 +623,18 @@ document.addEventListener('DOMContentLoaded', () => {
       metadataTable,
       blankParagraph(60),
 
-      ...createSection('1. Purpose', 'A54A2A', () => multiParagraphs(getValue('purpose', DEFAULTS.purpose))),
-      ...createSection('2. Vision / Mission', 'A54A2A', () => multiParagraphs(getValue('vision-mission', DEFAULTS['vision-mission']))),
-      ...createSection('3. Objectives', 'A54A2A', () => bulletList(getValue('objectives', DEFAULTS.objectives))),
-      ...createSection('4. Success Metrics', 'A54A2A', () => bulletList(getValue('success-metrics', DEFAULTS['success-metrics']))),
-
+      ...createSection('1. Purpose', 'A54A2A', () =>
+        multiParagraphs(getValue('purpose', DEFAULTS.purpose))
+      ),
+      ...createSection('2. Vision / Mission', 'A54A2A', () =>
+        multiParagraphs(getValue('vision-mission', DEFAULTS['vision-mission']))
+      ),
+      ...createSection('3. Objectives', 'A54A2A', () =>
+        bulletList(getValue('objectives', DEFAULTS.objectives))
+      ),
+      ...createSection('4. Success Metrics', 'A54A2A', () =>
+        bulletList(getValue('success-metrics', DEFAULTS['success-metrics']))
+      ),
       ...createSection('5. Scope & Authority', 'A54A2A', () => [
         heading('In Scope', docx.HeadingLevel.HEADING_2, 'A54A2A'),
         ...bulletList(getValue('in-scope', DEFAULTS['in-scope'])),
@@ -905,11 +645,9 @@ document.addEventListener('DOMContentLoaded', () => {
         heading('Escalation Path', docx.HeadingLevel.HEADING_2, 'A54A2A'),
         ...multiParagraphs(getValue('escalation-path', DEFAULTS['escalation-path']))
       ]),
-
       ...createSection('6. Guiding Principles', '2F5D50', () =>
         bulletList(getValue('guiding-principles', DEFAULTS['guiding-principles']))
       ),
-
       ...createSection('7. Membership & Representation', '2F5D50', () => [
         heading('Committee Members', docx.HeadingLevel.HEADING_2, '2F5D50'),
         membersDocTable,
@@ -918,7 +656,6 @@ document.addEventListener('DOMContentLoaded', () => {
         heading('Role Definitions', docx.HeadingLevel.HEADING_2, '2F5D50'),
         ...bulletList(getValue('role-definitions', DEFAULTS['role-definitions']))
       ]),
-
       ...createSection('8. Responsibilities & Deliverables', '2F5D50', () => [
         heading('Committee Responsibilities', docx.HeadingLevel.HEADING_2, '2F5D50'),
         ...bulletList(getValue('responsibilities', DEFAULTS.responsibilities)),
@@ -927,20 +664,19 @@ document.addEventListener('DOMContentLoaded', () => {
         heading('Key Deliverables', docx.HeadingLevel.HEADING_2, '2F5D50'),
         ...bulletList(getValue('key-deliverables', DEFAULTS['key-deliverables']))
       ]),
-
       ...createSection('9. Operating Model', '5A2D5C', () => {
         const operatingModelTable = createKeyValueTable([
           ['Meeting Cadence', getValue('meeting-frequency', DEFAULTS['meeting-frequency'])],
           ['Quorum', getValue('quorum', DEFAULTS.quorum)],
           ['Decision-Making Process', getValue('decision-making', DEFAULTS['decision-making'])]
         ]);
+
         return [
           operatingModelTable,
           heading('Meeting Administration', docx.HeadingLevel.HEADING_2, '5A2D5C'),
           ...multiParagraphs(getValue('meeting-administration', DEFAULTS['meeting-administration']))
         ];
       }),
-
       ...createSection('10. Policy, Privacy, Security & Sharing', '5A2D5C', () => {
         const content = [];
         const policyAlignment = getOptionalValue('policy-alignment');
@@ -951,22 +687,25 @@ document.addEventListener('DOMContentLoaded', () => {
           content.push(heading('Policy / Legal / Regulatory Alignment', docx.HeadingLevel.HEADING_2, '5A2D5C'));
           content.push(...multiParagraphs(policyAlignment));
         }
+
         if (privacySecurity) {
-          content.push(heading('Privacy, Security & Data Release Considerations', docx.HeadingLevel.HEADING_2, '5A2D5C'));
+          content.push(
+            heading('Privacy, Security & Data Release Considerations', docx.HeadingLevel.HEADING_2, '5A2D5C')
+          );
           content.push(...multiParagraphs(privacySecurity));
         }
+
         if (dataSharing) {
           content.push(heading('Data Sharing & Access Considerations', docx.HeadingLevel.HEADING_2, '5A2D5C'));
           content.push(...multiParagraphs(dataSharing));
         }
+
         return content;
       }),
-
       ...createSection('11. Working Groups & Subcommittees', '5A2D5C', () => {
         const subcommittees = getOptionalValue('subcommittees');
         return subcommittees ? bulletList(subcommittees) : [];
       }),
-
       ...createSection('12. Version History', '5A2D5C', () => [versionHistoryTable])
     ];
 
@@ -978,14 +717,216 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // ─── Event listeners ───────────────────────────────────────────────────────
+  function initCommitteeTypePicker() {
+    const wrapper = document.querySelector('[data-custom-select]');
+    const nativeSelect = document.getElementById('committee-type');
+
+    if (!wrapper || !nativeSelect) return null;
+
+    const trigger = wrapper.querySelector('.custom-select__trigger');
+    const triggerLabel = wrapper.querySelector('.custom-select__trigger-label');
+    const dropdown = wrapper.querySelector('.custom-select__dropdown');
+    const listbox = wrapper.querySelector('.custom-select__listbox');
+    const definitionText = wrapper.querySelector('.custom-select__definition-text');
+    const options = Array.from(wrapper.querySelectorAll('.custom-select__option'));
+
+    if (!trigger || !triggerLabel || !dropdown || !listbox || !definitionText || options.length === 0) {
+      return null;
+    }
+
+    let activeIndex = Math.max(
+      0,
+      options.findIndex((option) => option.dataset.value === nativeSelect.value)
+    );
+
+    function getDefinition(value) {
+      return COMMITTEE_TYPE_DEFINITIONS[value] || COMMITTEE_TYPE_DEFINITIONS.Other;
+    }
+
+    function setExpanded(isOpen) {
+      wrapper.classList.toggle('is-open', isOpen);
+      dropdown.hidden = !isOpen;
+      trigger.setAttribute('aria-expanded', String(isOpen));
+
+      if (isOpen) {
+        listbox.focus();
+      } else {
+        options.forEach((option) => option.classList.remove('is-active'));
+      }
+    }
+
+    function updateDefinitionByIndex(index) {
+      const option = options[index];
+      if (!option) return;
+      definitionText.textContent = getDefinition(option.dataset.value || '');
+    }
+
+    function updateOptionState(selectedValue, focusIndex = activeIndex) {
+      options.forEach((option, index) => {
+        const isSelected = option.dataset.value === selectedValue;
+        const isActive = index === focusIndex;
+        option.classList.toggle('is-selected', isSelected);
+        option.classList.toggle('is-active', isActive);
+        option.setAttribute('aria-selected', String(isSelected));
+      });
+
+      activeIndex = focusIndex;
+      const activeOption = options[activeIndex];
+      if (activeOption) {
+        listbox.setAttribute('aria-activedescendant', activeOption.id);
+        activeOption.scrollIntoView({ block: 'nearest' });
+      } else {
+        listbox.removeAttribute('aria-activedescendant');
+      }
+    }
+
+    function commitValue(value, shouldClose = true) {
+      if (!value) return;
+      nativeSelect.value = value;
+      triggerLabel.textContent = value;
+      activeIndex = Math.max(
+        0,
+        options.findIndex((option) => option.dataset.value === value)
+      );
+
+      updateOptionState(value, activeIndex);
+      definitionText.textContent = getDefinition(value);
+      nativeSelect.dispatchEvent(new Event('input', { bubbles: true }));
+      nativeSelect.dispatchEvent(new Event('change', { bubbles: true }));
+
+      if (shouldClose) {
+        setExpanded(false);
+        trigger.focus();
+      }
+    }
+
+    function syncFromNativeSelect() {
+      const value = nativeSelect.value || DEFAULTS['committee-type'];
+      triggerLabel.textContent = value;
+      activeIndex = Math.max(
+        0,
+        options.findIndex((option) => option.dataset.value === value)
+      );
+      updateOptionState(value, activeIndex);
+      definitionText.textContent = getDefinition(value);
+    }
+
+    function moveActive(direction) {
+      const next = (activeIndex + direction + options.length) % options.length;
+      updateOptionState(nativeSelect.value, next);
+      updateDefinitionByIndex(next);
+    }
+
+    trigger.addEventListener('click', () => {
+      const isOpen = wrapper.classList.contains('is-open');
+      setExpanded(!isOpen);
+      if (!isOpen) {
+        updateDefinitionByIndex(activeIndex);
+      }
+    });
+
+    trigger.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault();
+        if (!wrapper.classList.contains('is-open')) {
+          setExpanded(true);
+        }
+        moveActive(event.key === 'ArrowDown' ? 1 : -1);
+      }
+
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        if (!wrapper.classList.contains('is-open')) {
+          setExpanded(true);
+        } else {
+          commitValue(options[activeIndex]?.dataset.value || nativeSelect.value);
+        }
+      }
+
+      if (event.key === 'Escape' && wrapper.classList.contains('is-open')) {
+        event.preventDefault();
+        setExpanded(false);
+      }
+    });
+
+    listbox.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        moveActive(1);
+      } else if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        moveActive(-1);
+      } else if (event.key === 'Home') {
+        event.preventDefault();
+        updateOptionState(nativeSelect.value, 0);
+        updateDefinitionByIndex(0);
+      } else if (event.key === 'End') {
+        event.preventDefault();
+        const lastIndex = options.length - 1;
+        updateOptionState(nativeSelect.value, lastIndex);
+        updateDefinitionByIndex(lastIndex);
+      } else if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        commitValue(options[activeIndex]?.dataset.value || nativeSelect.value);
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        setExpanded(false);
+        trigger.focus();
+      } else if (event.key === 'Tab') {
+        setExpanded(false);
+      }
+    });
+
+    options.forEach((option, index) => {
+      option.addEventListener('mouseenter', () => {
+        activeIndex = index;
+        updateOptionState(nativeSelect.value, activeIndex);
+        updateDefinitionByIndex(activeIndex);
+      });
+
+      option.addEventListener('focus', () => {
+        activeIndex = index;
+        updateOptionState(nativeSelect.value, activeIndex);
+        updateDefinitionByIndex(activeIndex);
+      });
+
+      option.addEventListener('click', () => {
+        commitValue(option.dataset.value || nativeSelect.value);
+      });
+    });
+
+    nativeSelect.addEventListener('change', syncFromNativeSelect);
+
+    document.addEventListener('click', (event) => {
+      if (!wrapper.contains(event.target)) {
+        setExpanded(false);
+      }
+    });
+
+    form.addEventListener('reset', () => {
+      window.setTimeout(() => {
+        syncFromNativeSelect();
+        setExpanded(false);
+      }, 0);
+    });
+
+    syncFromNativeSelect();
+
+    return {
+      syncFromNativeSelect
+    };
+  }
+
+  const committeeTypePicker = initCommitteeTypePicker();
 
   form.addEventListener('input', (event) => {
     const target = event.target;
     if (!(target instanceof Element)) return;
+
     if (target.id && REQUIRED_FIELD_IDS.includes(target.id)) {
       setAriaInvalid(target.id, !getOptionalValue(target.id));
     }
+
     updateHelpers();
   });
 
@@ -994,7 +935,7 @@ document.addEventListener('DOMContentLoaded', () => {
       REQUIRED_FIELD_IDS.forEach((id) => setAriaInvalid(id, false));
       setStatus('');
       clearMembersTable();
-      syncCommitteeTypePicker();
+      committeeTypePicker?.syncFromNativeSelect();
       updateHelpers();
     }, 0);
   });
@@ -1002,6 +943,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (fillButton) {
     fillButton.addEventListener('click', fillStarterContent);
   }
+
+  if (jumpTopButton) {
+    jumpTopButton.addEventListener('click', scrollToTop);
+  }
+
+  window.addEventListener('scroll', updateJumpTopVisibility, { passive: true });
+  window.addEventListener('resize', updateJumpTopVisibility);
 
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -1013,8 +961,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    docx = window.docx;
-
+    docx = resolveDocx();
     if (!docx || typeof window.saveAs !== 'function') {
       setStatus('Document libraries did not load. Refresh the page and try again.', 'error');
       return;
@@ -1027,7 +974,6 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       setStatus('Generating your charter document...', 'success');
-
       const documentDefinition = buildDocument();
       const blob = await docx.Packer.toBlob(documentDefinition);
       const fileName = `${safeFileName(getValue('charter-name', DEFAULTS['charter-name']))}_Charter.docx`;
@@ -1045,9 +991,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // ─── Init ──────────────────────────────────────────────────────────────────
-
-  enhanceCommitteeTypePicker();
   initMembersTable();
+  committeeTypePicker?.syncFromNativeSelect();
   updateHelpers();
+  updateJumpTopVisibility();
 });
