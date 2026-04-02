@@ -762,6 +762,17 @@ textarea[aria-invalid="true"] {
   font-size: 0.95rem;
 }
 
+.members-select {
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  padding-right: 2.4rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7.5 10 12.5 15 7.5' stroke='%231F2933' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.8rem center;
+  background-size: 0.95rem 0.95rem;
+}
+
 .members-input:focus-visible {
   outline: 2px solid var(--focus-link);
   outline-offset: -2px;
