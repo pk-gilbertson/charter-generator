@@ -29,8 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
       key: 'voting',
       label: 'Voting Status',
       type: 'select',
-      options: ['Voting', 'Non-Voting'],
-      defaultValue: 'Voting'
+      options: ['','Voting', 'Non-Voting'],
+      defaultValue: ''
     }
   ];
 
