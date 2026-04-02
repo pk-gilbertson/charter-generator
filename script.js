@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitLabel = submitButton?.textContent?.trim() || 'Generate Charter (.docx)';
   const membersTbody = document.getElementById('members-tbody');
   const addMemberBtn = document.getElementById('add-member-row');
+  const jumpTopButton = document.getElementById('jump-to-top');
 
   let docx = null;
 
@@ -138,6 +139,26 @@ document.addEventListener('DOMContentLoaded', () => {
     'responsibilities',
     'meeting-frequency'
   ];
+
+
+
+  function getJumpThreshold() {
+    return Math.max(360, Math.round(window.innerHeight * 0.45));
+  }
+
+  function updateJumpTopVisibility() {
+    if (!jumpTopButton) return;
+    const shouldShow = window.scrollY > getJumpThreshold();
+    jumpTopButton.classList.toggle('is-visible', shouldShow);
+  }
+
+  function scrollToTop() {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({
+      top: 0,
+      behavior: reducedMotion ? 'auto' : 'smooth'
+    });
+  }
 
   function resolveDocx() {
     const library = window.docx;
@@ -711,6 +732,13 @@ document.addEventListener('DOMContentLoaded', () => {
     fillButton.addEventListener('click', fillStarterContent);
   }
 
+  if (jumpTopButton) {
+    jumpTopButton.addEventListener('click', scrollToTop);
+  }
+
+  window.addEventListener('scroll', updateJumpTopVisibility, { passive: true });
+  window.addEventListener('resize', updateJumpTopVisibility);
+
   form.addEventListener('submit', async (event) => {
     event.preventDefault();
 
@@ -755,4 +783,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initMembersTable();
   updateHelpers();
+  updateJumpTopVisibility();
 });
