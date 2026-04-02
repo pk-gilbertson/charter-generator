@@ -32,9 +32,7 @@
 <li>Capture scope, authority, and membership</li>
 <li>Export a polished draft as a Word document</li>
 </ul>
-<p class="hero__note">
-          The form runs entirely in the browser, which makes it suitable for simple GitHub Pages hosting.
-        </p>
+
 </aside>
 </header>
 <div class="workspace" id="main-content">
@@ -63,6 +61,11 @@
 <div class="jump-nav__actions">
 <button class="button button--secondary button--sidebar" id="fill-starter-content" type="button">Load starter content</button>
 <p class="jump-nav__helper">Use starter content to populate a practical example before exporting.</p>
+</div>
+<div aria-label="Form actions" class="jump-nav__utilities">
+<p class="utility-label">Form actions</p>
+<button aria-describedby="reset-form-helper" class="button button--utility button--sidebar" id="reset-form-button" type="button">Reset form</button>
+<p class="jump-nav__helper" id="reset-form-helper">Clears entered content and returns the form to its default state.</p>
 </div>
 </div>
 </nav>
@@ -365,7 +368,6 @@ Interoperability Working Group" rows="5"></textarea>
 </div>
 </div>
 <div class="action-row">
-<button class="button button--ghost" type="reset">Reset form</button>
 <button class="button button--primary" type="submit">Generate Charter (.docx)</button>
 </div>
 <p aria-live="polite" class="form-status" id="form-status"></p>

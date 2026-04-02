@@ -10,8 +10,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const membersTbody = document.getElementById('members-tbody');
   const addMemberBtn = document.getElementById('add-member-row');
   const jumpTopButton = document.getElementById('jump-to-top');
+  const resetButton = document.getElementById('reset-form-button');
 
   let docx = null;
+  let initialFormSnapshot = '';
 
   if (!form) {
     console.error('Charter form not found.');
@@ -245,6 +247,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function clearMembersTable() {
     initMembersTable();
+  }
+
+  function serializeFormState() {
+    const formData = new FormData(form);
+    const entries = Array.from(formData.entries()).sort(([a], [b]) => a.localeCompare(b));
+    const normalizedEntries = entries.map(([key, value]) => [key, String(value)]);
+
+    return JSON.stringify({
+      fields: normalizedEntries,
+      members: getMemberRows()
+    });
+  }
+
+  function hasFormChanges() {
+    return serializeFormState() !== initialFormSnapshot;
   }
 
   function getMemberRows() {
@@ -732,6 +749,17 @@ document.addEventListener('DOMContentLoaded', () => {
     fillButton.addEventListener('click', fillStarterContent);
   }
 
+  if (resetButton) {
+    resetButton.addEventListener('click', () => {
+      if (hasFormChanges()) {
+        const confirmed = window.confirm('Clear the form and remove any entered content?');
+        if (!confirmed) return;
+      }
+
+      form.reset();
+    });
+  }
+
   if (jumpTopButton) {
     jumpTopButton.addEventListener('click', scrollToTop);
   }
@@ -782,6 +810,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   initMembersTable();
+  initialFormSnapshot = serializeFormState();
   updateHelpers();
   updateJumpTopVisibility();
 });

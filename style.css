@@ -280,6 +280,23 @@ textarea {
   gap: 0.7rem;
 }
 
+.jump-nav__utilities {
+  margin-top: 1.4rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(200, 185, 166, 0.55);
+  display: grid;
+  gap: 0.7rem;
+}
+
+.utility-label {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(31, 41, 51, 0.72);
+}
+
 .jump-nav__helper {
   margin: 0;
   font-size: 0.92rem;
@@ -559,12 +576,12 @@ textarea[aria-invalid="true"] {
 }
 
 .button {
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 999px;
   padding: 0.9rem 1.2rem;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+  transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease, background-color 120ms ease, border-color 120ms ease;
 }
 
 .button:hover {
@@ -583,11 +600,20 @@ textarea[aria-invalid="true"] {
   box-shadow: 0 12px 24px rgba(165, 74, 42, 0.18);
 }
 
+.button--primary:hover {
+  box-shadow: 0 14px 28px rgba(165, 74, 42, 0.22);
+}
+
 .button--secondary {
   background: var(--steward-tint);
   color: var(--steward-core);
+  border-color: rgba(47, 93, 80, 0.18);
 }
 
+.button--secondary:hover {
+  background: #d5ddd4;
+  border-color: rgba(47, 93, 80, 0.28);
+}
 
 .button--sidebar {
   width: 100%;
@@ -597,7 +623,28 @@ textarea[aria-invalid="true"] {
 .button--ghost {
   background: transparent;
   color: var(--ink);
-  border: 1px solid rgba(31, 41, 51, 0.18);
+  border-color: rgba(31, 41, 51, 0.18);
+}
+
+.button--ghost:hover {
+  background: rgba(31, 41, 51, 0.04);
+  border-color: rgba(31, 41, 51, 0.28);
+}
+
+.button--utility {
+  background: linear-gradient(180deg, #f6f0e7 0%, #efe4d6 100%);
+  color: var(--ink);
+  border-color: rgba(126, 99, 70, 0.42);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.button--utility:hover {
+  background: linear-gradient(180deg, #f1e8db 0%, #e7d8c5 100%);
+  border-color: rgba(126, 99, 70, 0.58);
+}
+
+.button--utility:focus-visible {
+  background: linear-gradient(180deg, #f1e8db 0%, #e7d8c5 100%);
 }
 
 .form-status {
