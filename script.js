@@ -734,13 +734,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  const TABLE_BORDERS = {
-    top:                { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'C8B9A6' },
-    bottom:             { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'C8B9A6' },
-    left:               { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'C8B9A6' },
-    right:              { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'C8B9A6' },
-    insideHorizontal:   { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'E8DDD0' },
-    insideVertical:     { style: docx.BorderStyle ? docx.BorderStyle.SINGLE : 'single', size: 1, color: 'E8DDD0' }
+ 
   };
 
   function getTableBorders() {
