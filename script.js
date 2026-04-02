@@ -21,18 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const MEMBER_COLUMNS = ['Name', 'Title', 'Role', 'Voting Status'];
-  const MEMBER_FIELDS = [
-    { key: 'name', label: 'Name', type: 'text', placeholder: 'e.g., Jane Doe' },
-    { key: 'title', label: 'Title', type: 'text', placeholder: 'e.g., Chief Data Officer' },
-    { key: 'role', label: 'Role', type: 'text', placeholder: 'e.g., Chair' },
-    {
-      key: 'voting',
-      label: 'Voting Status',
-      type: 'select',
-      options: ['','Voting', 'Non-Voting'],
-      defaultValue: ''
-    }
-  ];
 
   const DEFAULT_MEMBERS = [
     { name: 'Jane Doe', title: 'Chief Data Officer', role: 'Chair', voting: 'Voting' },
@@ -52,8 +40,10 @@ document.addEventListener('DOMContentLoaded', () => {
     'term-review': 'Effective until revised or rescinded; reviewed annually.',
     purpose:
       'The purpose of this committee is to establish direction, accountability, and oversight for the management and use of data as a strategic asset in support of agency operations, policy, reporting, and responsible innovation.',
-    'vision-mission':
-      'Vision: Trusted, timely, secure, and well-understood data supports better services, decision-making, and public stewardship.\n\nMission: To guide agency-wide data governance through clear roles, practical standards, coordinated decision-making, and responsible access and use.',
+    vision:
+      'Trusted, timely, secure, and well-understood data supports better services, decision-making, and public stewardship.',
+    mission:
+      'To guide agency-wide data governance through clear roles, practical standards, coordinated decision-making, and responsible access and use.',
     objectives: [
       'Promote consistent accountability for priority data assets.',
       'Improve data quality, documentation, and standardization.',
@@ -147,7 +137,8 @@ document.addEventListener('DOMContentLoaded', () => {
     'agency-name',
     'charter-name',
     'purpose',
-    'vision-mission',
+    'vision',
+    'mission',
     'in-scope',
     'guiding-principles',
     'responsibilities',
@@ -198,39 +189,27 @@ document.addEventListener('DOMContentLoaded', () => {
     return hasAllKeys ? library : null;
   }
 
-  function createMemberField(field, value = '') {
-    const control = document.createElement(field.type === 'select' ? 'select' : 'input');
-    control.className = 'members-input';
-    control.setAttribute('aria-label', field.label);
-    control.dataset.memberKey = field.key;
-
-    if (field.type === 'select') {
-      control.classList.add('members-select');
-      field.options.forEach((optionValue) => {
-        const option = document.createElement('option');
-        option.value = optionValue;
-        option.textContent = optionValue;
-        control.appendChild(option);
-      });
-      control.value = value || field.defaultValue || field.options[0] || '';
-      control.addEventListener('change', updateHelpers);
-    } else {
-      control.type = field.type || 'text';
-      control.placeholder = field.placeholder || '';
-      control.value = value || '';
-      control.addEventListener('input', updateHelpers);
-    }
-
-    return control;
-  }
-
   function createMemberRow(data = {}) {
     const tr = document.createElement('tr');
     tr.className = 'members-row';
 
-    MEMBER_FIELDS.forEach((field) => {
+    const fields = [
+      { key: 'name', placeholder: 'e.g., Jane Doe' },
+      { key: 'title', placeholder: 'e.g., Chief Data Officer' },
+      { key: 'role', placeholder: 'e.g., Chair' },
+      { key: 'voting', placeholder: 'e.g., Voting' }
+    ];
+
+    fields.forEach(({ key, placeholder }, index) => {
       const td = document.createElement('td');
-      td.appendChild(createMemberField(field, data[field.key] || ''));
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'members-input';
+      input.placeholder = placeholder;
+      input.value = data[key] || '';
+      input.setAttribute('aria-label', MEMBER_COLUMNS[index]);
+      input.addEventListener('input', updateHelpers);
+      td.appendChild(input);
       tr.appendChild(td);
     });
 
@@ -292,21 +271,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!membersTbody) return [];
 
     return Array.from(membersTbody.querySelectorAll('tr.members-row')).map((tr) => {
-      const row = {};
-      MEMBER_FIELDS.forEach((field) => {
-        const control = tr.querySelector(`[data-member-key="${field.key}"]`);
-        row[field.key] = typeof control?.value === 'string' ? control.value.trim() : '';
-      });
-      return row;
+      const inputs = tr.querySelectorAll('input.members-input');
+      return {
+        name: inputs[0]?.value.trim() || '',
+        title: inputs[1]?.value.trim() || '',
+        role: inputs[2]?.value.trim() || '',
+        voting: inputs[3]?.value.trim() || ''
+      };
     });
   }
 
-  function isMeaningfulMemberRow(row = {}) {
-    return Boolean(row.name || row.title || row.role);
-  }
-
   function hasMemberData() {
-    return getMemberRows().some((row) => isMeaningfulMemberRow(row));
+    return getMemberRows().some((row) => row.name || row.title || row.role || row.voting);
   }
 
   if (addMemberBtn) {
@@ -314,7 +290,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!membersTbody) return;
       const newRow = createMemberRow();
       membersTbody.appendChild(newRow);
-      newRow.querySelector('.members-input')?.focus();
+      newRow.querySelector('input')?.focus();
       updateHelpers();
     });
   }
@@ -484,6 +460,11 @@ document.addEventListener('DOMContentLoaded', () => {
     return toLines(text).map((line) => bodyParagraph(line));
   }
 
+  function contentParagraphs(text) {
+    const paragraphs = multiParagraphs(text);
+    return paragraphs.length > 0 ? paragraphs : [bodyParagraph('')];
+  }
+
   function bulletList(text) {
     return toLines(text).map(
       (item) => new docx.Paragraph({ text: item, bullet: { level: 0 }, spacing: { after: 80 } })
@@ -584,8 +565,6 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function createMembersDocTable(members) {
-    const rows = members.length > 0 ? members : [{ name: '', title: '', role: '', voting: '' }];
-
     return new docx.Table({
       width: { size: 100, type: docx.WidthType.PERCENTAGE },
       layout: docx.TableLayoutType.FIXED,
@@ -597,7 +576,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tableCell(col, { bold: true, shading: '2F5D50', color: 'FFFFFF' })
           )
         }),
-        ...rows.map((member, index) =>
+        ...members.map((member, index) =>
           new docx.TableRow({
             children: [member.name, member.title, member.role, member.voting].map((value) =>
               tableCell(value, { shading: index % 2 === 0 ? 'FFFFFF' : 'FBF8F2' })
@@ -635,11 +614,9 @@ document.addEventListener('DOMContentLoaded', () => {
       ['Term & Review Cycle', termReview]
     ]);
 
-    const memberRows = getMemberRows().filter((row) => isMeaningfulMemberRow(row));
-    const votingMembers = memberRows.filter((row) => row.voting === 'Voting');
-    const nonVotingMembers = memberRows.filter((row) => row.voting === 'Non-Voting');
-    const votingMembersTable = createMembersDocTable(votingMembers);
-    const nonVotingMembersTable = createMembersDocTable(nonVotingMembers);
+    const memberRows = getMemberRows().filter((row) => row.name || row.title || row.role || row.voting);
+    const membersForDoc = memberRows.length > 0 ? memberRows : DEFAULT_MEMBERS;
+    const membersDocTable = createMembersDocTable(membersForDoc);
 
     const versionHistoryTable = createDataTable(
       ['Version', 'Date', 'Author', 'Summary of Changes'],
@@ -665,7 +642,12 @@ document.addEventListener('DOMContentLoaded', () => {
       blankParagraph(60),
 
       ...createSection('1. Purpose', 'A54A2A', () => multiParagraphs(getValue('purpose', DEFAULTS.purpose))),
-      ...createSection('2. Vision / Mission', 'A54A2A', () => multiParagraphs(getValue('vision-mission', DEFAULTS['vision-mission']))),
+      ...createSection('2. Vision & Mission', 'A54A2A', () => [
+        heading('Vision', docx.HeadingLevel.HEADING_2, 'A54A2A'),
+        ...contentParagraphs(getOptionalValue('vision')),
+        heading('Mission', docx.HeadingLevel.HEADING_2, 'A54A2A'),
+        ...contentParagraphs(getOptionalValue('mission'))
+      ]),
       ...createSection('3. Objectives', 'A54A2A', () => bulletList(getValue('objectives', DEFAULTS.objectives))),
       ...createSection('4. Success Metrics', 'A54A2A', () => bulletList(getValue('success-metrics', DEFAULTS['success-metrics']))),
 
@@ -685,10 +667,8 @@ document.addEventListener('DOMContentLoaded', () => {
       ),
 
       ...createSection('7. Membership & Representation', '2F5D50', () => [
-        heading('Committee Members - Voting', docx.HeadingLevel.HEADING_2, '2F5D50'),
-        votingMembersTable,
-        heading('Committee Members - Non-Voting', docx.HeadingLevel.HEADING_2, '2F5D50'),
-        nonVotingMembersTable,
+        heading('Committee Members', docx.HeadingLevel.HEADING_2, '2F5D50'),
+        membersDocTable,
         heading('Required Functions / Perspectives', docx.HeadingLevel.HEADING_2, '2F5D50'),
         ...bulletList(getValue('required-functions', DEFAULTS['required-functions'])),
         heading('Role Definitions', docx.HeadingLevel.HEADING_2, '2F5D50'),
