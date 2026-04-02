@@ -92,23 +92,21 @@
 </div>
 <div class="field-group"><div class="field-label-row"><label for="committee-type">Committee Type</label><span class="field-help"><button aria-label="Definition for Committee Type" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Choose the governance structure that best matches how this group will operate, such as a steering committee, advisory group, or working group.</span></span></div>
 
-<select id="committee-type" name="committee-type">
-<option value="Data Governance Steering Committee">Data Governance Steering Committee</option>
-<option value="Data Governance Advisory Group">Data Governance Advisory Group</option>
-<option value="Data Stewardship Council">Data Stewardship Council</option>
-<option value="Working Group">Working Group</option>
-<option value="Cross-Agency Governance Group">Cross-Agency Governance Group</option>
-<option value="Other">Other</option>
-</select>
+<select aria-describedby="committee-type-note" id="committee-type" name="committee-type"></select>
+<p class="selection-note" id="committee-type-note">Choose the governance structure that best fits this body.</p>
+<div class="conditional-field" hidden="" id="committee-type-other-wrap">
+<label class="sr-only" for="committee-type-other">Describe committee type</label>
+<input id="committee-type-other" name="committee-type-other" placeholder="Describe the committee type" type="text"/>
+</div>
 </div>
 <div class="field-group"><div class="field-label-row"><label for="agency-scope">Organizational Scope</label><span class="field-help"><button aria-label="Definition for Organizational Scope" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Identify the organizational level this charter covers, such as one program, one division, the full agency, or multiple agencies.</span></span></div>
 
-<select id="agency-scope" name="agency-scope">
-<option value="Agency-wide">Agency-wide</option>
-<option value="Division-wide">Division-wide</option>
-<option value="Program-specific">Program-specific</option>
-<option value="Cross-agency">Cross-agency</option>
-</select>
+<select aria-describedby="agency-scope-note" id="agency-scope" name="agency-scope"></select>
+<p class="selection-note" id="agency-scope-note">Choose the organizational level this charter covers.</p>
+<div class="conditional-field" hidden="" id="agency-scope-other-wrap">
+<label class="sr-only" for="agency-scope-other">Describe organizational scope</label>
+<input id="agency-scope-other" name="agency-scope-other" placeholder="Describe the organizational scope" type="text"/>
+</div>
 </div>
 <div class="field-group"><div class="field-label-row"><label for="executive-sponsor">Executive Sponsor</label><span class="field-help"><button aria-label="Definition for Executive Sponsor" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Name the senior leader who authorizes the group, supports escalation, and helps remove barriers when decisions need executive backing.</span></span></div>
 
@@ -132,8 +130,8 @@
 <div class="section-heading">
 <p class="section-kicker">02</p>
 <div>
-<h2 id="section-purpose-title">Purpose, Vision &amp; Outcomes</h2>
-<p>State why the group exists and what success should look like.</p>
+<h2 id="section-purpose-title">Purpose, Vision, Mission &amp; Outcomes</h2>
+<p>State why the group exists, the future state it is pursuing, and what success should look like.</p>
 </div>
 </div>
 <div class="field-grid">
@@ -141,9 +139,13 @@
 
 <textarea id="purpose" name="purpose" placeholder="Describe the business need the committee addresses." rows="4"></textarea>
 </div>
-<div class="field-group"><div class="field-label-row"><label for="vision-mission">Vision / Mission</label><span class="field-help"><button aria-label="Definition for Vision / Mission" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Describe the future state the committee is working toward (vision) and the ongoing work it performs to get there (mission).</span></span></div>
+<div class="field-group"><div class="field-label-row"><label for="vision">Vision</label><span class="field-help"><button aria-label="Definition for Vision" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Describe the future state the committee is working toward and the conditions it hopes to create over time.</span></span></div>
 
-<textarea id="vision-mission" name="vision-mission" placeholder="Describe the future state and ongoing mission of the committee." rows="4"></textarea>
+<textarea id="vision" name="vision" placeholder="Describe the future state the committee is working toward." rows="4"></textarea>
+</div>
+<div class="field-group"><div class="field-label-row"><label for="mission">Mission</label><span class="field-help"><button aria-label="Definition for Mission" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Describe the ongoing work the committee performs to advance the vision and support governance in practice.</span></span></div>
+
+<textarea id="mission" name="mission" placeholder="Describe the committee's ongoing mission and role." rows="4"></textarea>
 </div>
 <div class="field-group"><div class="field-label-row"><label for="objectives">Objectives <span class="field-note">One per line</span></label><span class="field-help"><button aria-label="Definition for Objectives" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">List the specific outcomes or goals the committee is responsible for achieving.</span></span></div>
 
@@ -180,7 +182,12 @@ Project management decisions" rows="5"></textarea>
 </div>
 <div class="field-group"><div class="field-label-row"><label for="decision-authority">Decision Authority</label><span class="field-help"><button aria-label="Definition for Decision Authority" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Describe the types of decisions this committee can make, recommend, or approve without needing additional authorization.</span></span></div>
 
-<textarea id="decision-authority" name="decision-authority" placeholder="Describe the decisions this committee can make or approve." rows="4"></textarea>
+<select aria-describedby="decision-authority-note" id="decision-authority" name="decision-authority"></select>
+<p class="selection-note" id="decision-authority-note">Choose the authority model that best matches how this group makes or recommends decisions.</p>
+<div class="conditional-field" hidden="" id="decision-authority-other-wrap">
+<label class="sr-only" for="decision-authority-other">Describe decision authority</label>
+<input id="decision-authority-other" name="decision-authority-other" placeholder="Describe the decision authority model" type="text"/>
+</div>
 </div>
 <div class="field-group"><div class="field-label-row"><label for="escalation-path">Escalation Path</label><span class="field-help"><button aria-label="Definition for Escalation Path" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Explain what happens when the committee cannot resolve an issue, and who or what body receives escalated decisions.</span></span></div>
 
@@ -248,9 +255,17 @@ Standardize where practical" rows="6"></textarea>
     </div>
   </div>
 
-<div class="field-group"><div class="field-label-row"><label for="required-functions">Required Functions / Perspectives</label><span class="field-help"><button aria-label="Definition for Required Functions / Perspectives" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Identify the business, technical, legal, privacy, security, and operational perspectives that should be represented.</span></span></div>
+<div class="field-group"><div class="field-label-row"><span class="field-group-label" id="required-functions-label">Required Functions / Perspectives</span><span class="field-help"><button aria-label="Definition for Required Functions / Perspectives" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Identify the business, technical, legal, privacy, security, and operational perspectives that should be represented.</span></span></div>
 
-<textarea id="required-functions" name="required-functions" placeholder="List the perspectives that should be represented." rows="5"></textarea>
+<p class="selection-note" id="required-functions-note">Select all perspectives that should be represented in the committee.</p>
+<fieldset aria-labelledby="required-functions-label" class="checkbox-group">
+<legend class="sr-only">Required Functions / Perspectives</legend>
+<div class="checkbox-list" id="required-functions-options"></div>
+</fieldset>
+<div class="conditional-field" hidden="" id="required-functions-other-wrap">
+<label class="sr-only" for="required-functions-other">Describe other required function or perspective</label>
+<input id="required-functions-other" name="required-functions-other" placeholder="Describe another required function or perspective" type="text"/>
+</div>
 </div>
 <div class="field-group"><div class="field-label-row"><label for="role-definitions">Role Definitions</label><span class="field-help"><button aria-label="Definition for Role Definitions" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Define the key committee roles so members understand their responsibilities, authority, and expected level of participation.</span></span></div>
 
@@ -289,7 +304,7 @@ Quarterly governance report" rows="5"></textarea>
 </div>
 </div>
 </section>
-<section aria-labelledby="section-operations-title" class="form-card form-card--custodian form-card--operating" id="section-operations">
+<section aria-labelledby="section-operations-title" class="form-card form-card--custodian" id="section-operations">
 <div class="section-heading">
 <p class="section-kicker">07</p>
 <div>
@@ -297,20 +312,30 @@ Quarterly governance report" rows="5"></textarea>
 <p>Set how the committee meets, makes decisions, and maintains governance records.</p>
 </div>
 </div>
-<div class="field-grid field-grid--operating">
-<div class="field-group field-group--operating"><div class="field-label-row field-label-row--inline-help"><label for="meeting-frequency">Meeting Cadence</label><span class="field-help"><button aria-label="Definition for Meeting Cadence" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">State how often the group meets and, if useful, include the normal timing pattern.</span></span></div>
+<div class="field-grid field-grid--two">
+<div class="field-group"><div class="field-label-row"><label for="meeting-frequency">Meeting Frequency</label><span class="field-help"><button aria-label="Definition for Meeting Cadence" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">State how often the group meets and, if useful, include the normal timing pattern.</span></span></div>
 
-<input id="meeting-frequency" name="meeting-frequency" placeholder="e.g., Monthly on the third Thursday" type="text" value="Monthly"/>
+<select aria-describedby="meeting-frequency-note" id="meeting-frequency" name="meeting-frequency"></select>
+<p class="selection-note" id="meeting-frequency-note">Choose how often the committee meets.</p>
+<div class="conditional-field" hidden="" id="meeting-frequency-other-wrap">
+<label class="sr-only" for="meeting-frequency-other">Describe meeting frequency</label>
+<input id="meeting-frequency-other" name="meeting-frequency-other" placeholder="Describe the meeting schedule" type="text"/>
 </div>
-<div class="field-group field-group--operating"><div class="field-label-row field-label-row--inline-help"><label for="quorum">Quorum</label><span class="field-help"><button aria-label="Definition for Quorum" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Define the minimum participation needed for the group to conduct business or make formal decisions.</span></span></div>
+</div>
+<div class="field-group"><div class="field-label-row"><label for="quorum">Quorum</label><span class="field-help"><button aria-label="Definition for Quorum" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Define the minimum participation needed for the group to conduct business or make formal decisions.</span></span></div>
 
 <input id="quorum" name="quorum" placeholder="e.g., 50% of voting members" type="text"/>
 </div>
-<div class="field-group field-group--operating"><div class="field-label-row field-label-row--inline-help"><label for="decision-making">Decision-Making Process</label><span class="field-help"><button aria-label="Definition for Decision-Making Process" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Describe how the group makes decisions, such as consensus, majority vote, advisory recommendation, or executive approval.</span></span></div>
+<div class="field-group field-group--full"><div class="field-label-row"><label for="decision-making">Decision-Making Process</label><span class="field-help"><button aria-label="Definition for Decision-Making Process" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Describe how the group makes decisions, such as consensus, majority vote, advisory recommendation, or executive approval.</span></span></div>
 
-<input id="decision-making" name="decision-making" type="text" value="Consensus where practical; otherwise majority vote."/>
+<select aria-describedby="decision-making-note" id="decision-making" name="decision-making"></select>
+<p class="selection-note" id="decision-making-note">Choose the method the committee uses to make decisions.</p>
+<div class="conditional-field" hidden="" id="decision-making-other-wrap">
+<label class="sr-only" for="decision-making-other">Describe decision-making process</label>
+<input id="decision-making-other" name="decision-making-other" placeholder="Describe the decision-making process" type="text"/>
 </div>
-<div class="field-group field-group--operating"><div class="field-label-row field-label-row--inline-help"><label for="meeting-administration">Meeting Administration</label><span class="field-help"><button aria-label="Definition for Meeting Administration" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Explain who handles agendas, minutes, action items, decision tracking, and recordkeeping for the group.</span></span></div>
+</div>
+<div class="field-group field-group--full"><div class="field-label-row"><label for="meeting-administration">Meeting Administration</label><span class="field-help"><button aria-label="Definition for Meeting Administration" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Explain who handles agendas, minutes, action items, decision tracking, and recordkeeping for the group.</span></span></div>
 
 <textarea id="meeting-administration" name="meeting-administration" placeholder="Describe agenda ownership, minutes, issue tracking, and records handling." rows="4"></textarea>
 </div>
