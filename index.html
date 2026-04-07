@@ -11,6 +11,7 @@
 <body>
 <a class="skip-link" href="#main-content">Skip to form</a>
 <div class="page-shell">
+<!-- Hero section introduces the tool and quick orientation guidance. -->
 <header aria-labelledby="page-title" class="hero">
 <div class="hero__copy">
 <p class="eyebrow">State Government Starter Tool</p>
@@ -35,6 +36,7 @@
 
 </aside>
 </header>
+<!-- Workspace pairs persistent jump navigation with the editable charter form. -->
 <div class="workspace" id="main-content">
 <nav aria-label="Section navigation" class="jump-nav">
 <div class="jump-nav__card">
@@ -71,6 +73,7 @@
 </nav>
 <main>
 <form id="charter-form" novalidate=""><div class="inline-help-banner" role="note">Hover or focus the information icons next to field labels for plain-language definitions and drafting guidance.</div>
+<!-- Core charter sections capture the minimum fields required for a usable draft. -->
 <section aria-labelledby="section-basics-title" class="form-card form-card--owner" id="section-basics">
 <div class="section-heading">
 <p class="section-kicker">01</p>
@@ -385,6 +388,7 @@ Interoperability Working Group" rows="5"></textarea>
 </div>
 </details>
 </section>
+<!-- Final action section keeps export controls separate from data-entry sections. -->
 <section aria-labelledby="actions-title" class="form-card form-card--support">
 <div class="section-heading section-heading--compact">
 <div>
@@ -406,6 +410,7 @@ Interoperability Working Group" rows="5"></textarea>
 <span aria-hidden="true" class="jump-top__icon">↑</span>
 <span class="jump-top__label">Top</span>
 </button>
+<!-- Load third-party libraries first, then initialize page behavior. -->
 <script defer="" src="https://unpkg.com/docx@8.5.0/build/index.umd.js"></script>
 <script defer="" src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 <script defer="" src="script.js"></script>

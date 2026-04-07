@@ -1,3 +1,4 @@
+/* Theme tokens and global design primitives. */
 :root {
   --owner-core: #A54A2A;
   --owner-tint: #EDDFD5;
@@ -33,6 +34,7 @@
   box-sizing: border-box;
 }
 
+/* Base page typography and element defaults. */
 html {
   scroll-behavior: smooth;
 }
@@ -85,6 +87,7 @@ textarea {
   box-shadow: var(--shadow-soft);
 }
 
+/* High-level shell and hero layout. */
 .page-shell {
   width: min(1320px, calc(100% - 2rem));
   margin: 0 auto;
@@ -210,6 +213,7 @@ textarea {
   margin-top: 0.55rem;
 }
 
+/* Main workspace with sticky jump navigation. */
 .workspace {
   display: grid;
   grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
@@ -308,6 +312,7 @@ textarea {
   gap: 1.1rem;
 }
 
+/* Section cards are color-coded by governance role. */
 .form-card {
   position: relative;
   padding: 1.5rem;
@@ -680,6 +685,7 @@ textarea[aria-invalid="true"] {
   margin-top: 1rem;
 }
 
+/* Shared button system for primary, secondary, and utility actions. */
 .button {
   border: 1px solid transparent;
   border-radius: 999px;
@@ -777,6 +783,7 @@ textarea[aria-invalid="true"] {
   }
 }
 
+/* Responsive adjustments prioritize readable form fields on narrow screens. */
 @media (max-width: 760px) {
   .page-shell {
     width: min(100% - 1rem, 1320px);
