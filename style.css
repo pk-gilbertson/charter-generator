@@ -633,6 +633,32 @@ textarea[aria-invalid="true"] {
   color: rgba(31, 41, 51, 0.78);
 }
 
+
+#required-functions-options {
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.45rem;
+}
+
+#required-functions-options .checkbox-option {
+  padding: 0.5rem 0.65rem;
+  gap: 0.55rem;
+}
+
+#required-functions-options .checkbox-option__label {
+  font-size: 0.92rem;
+  line-height: 1.25;
+}
+
+#required-functions-options .checkbox-option__definition {
+  display: none;
+}
+
+@media (max-width: 720px) {
+  #required-functions-options {
+    grid-template-columns: 1fr;
+  }
+}
+
 .members-select {
   appearance: none;
   -webkit-appearance: none;
