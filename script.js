@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+  // Cache frequently accessed DOM nodes and shared UI state.
   const form = document.getElementById('charter-form');
   const statusEl = document.getElementById('form-status');
   const fillButton = document.getElementById('fill-starter-content');
@@ -38,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'decision-making'
   ];
 
+  // Configuration metadata used to render structured controls and helper text.
   const STRUCTURED_FIELDS = {
     'committee-type': {
       type: 'select',
@@ -364,6 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
     'version-history': `1.0, ${new Date().toISOString().slice(0, 10)}, System, Initial charter generated`
   };
 
+  // Show/hide the "Back to top" control based on scroll depth.
   function getJumpThreshold() {
     return Math.max(360, Math.round(window.innerHeight * 0.45));
   }
@@ -402,6 +405,7 @@ document.addEventListener('DOMContentLoaded', () => {
     return requiredKeys.every((key) => key in library) ? library : null;
   }
 
+  // Generic value helpers keep null/empty handling consistent across fields.
   function getField(id) {
     return document.getElementById(id);
   }
@@ -920,6 +924,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setStatus('Starter content loaded. Review and customize before export.', 'success');
   }
 
+  // DOCX helper factories keep document construction readable and reusable.
   function blankParagraph(after = 120) {
     return new docx.Paragraph({ text: '', spacing: { after } });
   }
