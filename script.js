@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const submitLabel = submitButton?.textContent?.trim() || 'Generate Charter (.docx)';
   const membersTbody = document.getElementById('members-tbody');
   const addMemberBtn = document.getElementById('add-member-row');
+  const sortRoleDefinitionsBtn = document.getElementById('sort-role-definitions');
   const jumpTopButton = document.getElementById('jump-to-top');
   const resetButton = document.getElementById('reset-form-button');
 
@@ -542,6 +543,18 @@ document.addEventListener('DOMContentLoaded', () => {
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean);
+  }
+
+  function sortRoleDefinitions() {
+    const roleDefinitionsField = getField('role-definitions');
+    if (!roleDefinitionsField) return;
+
+    const sortedLines = toLines(roleDefinitionsField.value).sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: 'base' })
+    );
+
+    roleDefinitionsField.value = sortedLines.join('\n');
+    updateHelpers();
   }
 
   function splitWithLimit(line, expectedParts) {
@@ -1432,6 +1445,12 @@ document.addEventListener('DOMContentLoaded', () => {
       membersTbody.appendChild(row);
       row.querySelector('[data-member-key="name"]')?.focus();
       updateHelpers();
+    });
+  }
+
+  if (sortRoleDefinitionsBtn) {
+    sortRoleDefinitionsBtn.addEventListener('click', () => {
+      sortRoleDefinitions();
     });
   }
 
