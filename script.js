@@ -297,11 +297,11 @@ document.addEventListener('DOMContentLoaded', () => {
   ];
 
   const DEFAULTS = {
-    'agency-name': 'Agency Name',
-    'charter-name': 'Data Governance Steering Committee',
+    'agency-name': 'Department of Example',
+    'charter-name': 'Draft Data Governance Steering Committee',
     'committee-type': 'Data Governance Steering Committee',
     'agency-scope': 'Agency / Department',
-    'executive-sponsor': 'Executive Sponsor',
+    'executive-sponsor': 'Secretary Example Sponsor',
     'chair-lead': 'Committee Chair',
     'effective-date': new Date().toISOString().slice(0, 10),
     'term-review': 'Effective until revised or rescinded; reviewed annually.',
