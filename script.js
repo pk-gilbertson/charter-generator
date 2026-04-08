@@ -34,8 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
       'Data Ownership: Staff that own the purpose, use, access, and sharing expectations for the data asset.',
     'Data Stewardship':
       'Data Stewardship: Staff responsible for operational quality, definitions, and day-to-day governance practices.',
-    'Data Stewardship (IT / Data Platform)':
-      'Data Stewardship (IT / Data Platform): Technical staff supporting systems, integration, or data platforms.',
+    'Data Custodian (IT / Data Platform)':
+      'Data Custodian (IT / Data Platform): Technical staff supporting systems, integration, or data platforms.',
     'Information Security': 'Information Security: Staff representing security requirements and risk controls.',
     'Privacy / Confidentiality':
       'Privacy / Confidentiality: Staff representing privacy, confidentiality, or disclosure requirements.',
@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
           definition: 'Persons responsible for operational quality, definitions, and day-to-day governance practices.'
         },
         {
-          value: 'Data Stewardship (IT / Data Platform)',
+          value: 'Data Custodian (IT / Data Platform)',
           definition: 'Technical staff supporting systems, integration, or data platforms.'
         },
         {
@@ -392,7 +392,9 @@ document.addEventListener('DOMContentLoaded', () => {
     ].join('\n'),
     'required-functions': [
       'Business / Program Leadership',
-      'Data Stewardship (IT / Data Platform)',
+      'Data Ownership',
+      'Data Stewardship',
+      'Data Custodian (IT / Data Platform)',
       'Privacy / Confidentiality',
       'Legal / Compliance',
       'Analytics / BI / Reporting'
