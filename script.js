@@ -792,7 +792,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const fields = [
       { key: 'name', label: 'Name', placeholder: 'e.g., Jane Doe', type: 'text' },
       { key: 'title', label: 'Title', placeholder: 'e.g., Chief Data Officer', type: 'text' },
-      { key: 'role', label: 'Role', placeholder: 'e.g., Chair', type: 'text' },
+      {
+        key: 'role',
+        label: 'Role',
+        placeholder: 'Select role',
+        type: 'select',
+        options: ['Chair', 'Member', 'Advisor']
+      },
       {
         key: 'voting',
         label: 'Voting Status',
