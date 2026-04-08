@@ -470,8 +470,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   function getSuggestedRoleDefinitionLines() {
-    const selectedFunctions = getFieldValue('required-functions', DEFAULTS['required-functions']);
-    const values = Array.isArray(selectedFunctions) ? selectedFunctions : toLines(selectedFunctions);
+    const values = getStructuredValues('required-functions');
 
     return values
       .map((value) => FUNCTION_TO_ROLE_DEFINITIONS[String(value || '').trim()])
@@ -1338,6 +1337,7 @@ document.addEventListener('DOMContentLoaded', () => {
       REQUIRED_FIELD_IDS.forEach((id) => setAriaInvalid(id, false));
       setStatus('');
       clearMembersTable();
+      setTextValue('role-definitions', DEFAULT_ROLE_DEFINITION_LINES.join('\n'));
       updateAllStructuredFieldStates();
       updateHelpers();
     }, 0);
