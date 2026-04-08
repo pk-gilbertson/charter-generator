@@ -246,6 +246,48 @@ document.addEventListener('DOMContentLoaded', () => {
         { value: 'Other', definition: 'Use for a different schedule.' }
       ]
     },
+    quorum: {
+      type: 'select',
+      placeholder: 'Select quorum rule',
+      noteId: 'quorum-note',
+      otherFieldId: 'quorum-other',
+      otherWrapId: 'quorum-other-wrap',
+      defaultNote: 'Choose how quorum is established for the group.',
+      options: [
+        {
+          value: 'Majority of voting members',
+          definition: 'More than half of designated voting members must be present.'
+        },
+        {
+          value: 'Majority of total members',
+          definition: 'More than half of all committee members must be present, whether voting or not.'
+        },
+        {
+          value: 'Fixed number',
+          definition: 'A specific minimum number of members is required.'
+        },
+        {
+          value: 'Percentage threshold',
+          definition: 'A defined percentage of membership is required.'
+        },
+        {
+          value: 'Functional representation required',
+          definition: 'Quorum requires representation from specific roles, divisions, or functions.'
+        },
+        {
+          value: 'Chair required',
+          definition: 'The Chair or delegated lead must be present for quorum.'
+        },
+        {
+          value: 'No formal quorum',
+          definition: 'The group may meet and proceed without a minimum attendance requirement.'
+        },
+        {
+          value: 'Other',
+          definition: 'Use a custom quorum rule.'
+        }
+      ]
+    },
     'decision-making': {
       type: 'select',
       placeholder: 'Select decision-making process',
@@ -377,7 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
       'Periodic status or progress summary'
     ].join('\n'),
     'meeting-frequency': 'Monthly',
-    quorum: 'A simple majority of voting members.',
+    quorum: 'Majority of voting members',
     'decision-making': 'Consensus',
     'meeting-administration':
       'The chair or designee will prepare agendas, document decisions, maintain meeting records, and track action items and escalations.',
@@ -569,9 +611,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!select) return;
 
     select.innerHTML = '';
-    select.appendChild(new Option(config.placeholder, ''));
+    const placeholderOption = new Option(config.placeholder, '');
+    placeholderOption.title = config.defaultNote || config.placeholder || '';
+    select.appendChild(placeholderOption);
     config.options.forEach((option) => {
-      select.appendChild(new Option(option.value, option.value));
+      const selectOption = new Option(option.value, option.value);
+      selectOption.title = option.definition || option.value;
+      selectOption.dataset.definition = option.definition || '';
+      select.appendChild(selectOption);
     });
   }
 
@@ -643,6 +690,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (config.type === 'select') {
       const value = getOptionalValue(id);
       const note = config.noteId ? getField(config.noteId) : null;
+      const field = getField(id);
       const showingOther = value === 'Other';
       setConditionalVisibility(id, showingOther);
       if (!showingOther) {
@@ -651,6 +699,9 @@ document.addEventListener('DOMContentLoaded', () => {
       }
       if (note) {
         note.textContent = value ? getSelectDefinition(id) : config.defaultNote || '';
+      }
+      if (field) {
+        field.title = value ? getSelectDefinition(id) : config.defaultNote || '';
       }
     }
 
@@ -1256,7 +1307,7 @@ document.addEventListener('DOMContentLoaded', () => {
       ...createSection('9. Operating Model', '5A2D5C', () => {
         const operatingModelTable = createKeyValueTable([
           ['Meeting Frequency', meetingFrequency],
-          ['Quorum', getTextValue('quorum', DEFAULTS.quorum)],
+          ['Quorum', getFieldValue('quorum', DEFAULTS.quorum)],
           ['Decision-Making Process', decisionMaking]
         ]);
 

@@ -325,7 +325,12 @@ Quarterly governance report" rows="5"></textarea>
 </div>
 <div class="field-group"><div class="field-label-row"><label for="quorum">Quorum</label><span class="field-help"><button aria-label="Definition for Quorum" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Define the minimum participation needed for the group to conduct business or make formal decisions.</span></span></div>
 
-<input id="quorum" name="quorum" placeholder="e.g., 50% of voting members" type="text"/>
+<select aria-describedby="quorum-note" id="quorum" name="quorum"></select>
+<p class="selection-note" id="quorum-note">Choose how quorum is established for the group.</p>
+<div class="conditional-field" hidden="" id="quorum-other-wrap">
+<label class="sr-only" for="quorum-other">Describe quorum rule</label>
+<input id="quorum-other" name="quorum-other" placeholder="Describe the quorum rule" type="text"/>
+</div>
 </div>
 <div class="field-group"><div class="field-label-row"><label for="decision-making">Decision-Making Process</label><span class="field-help"><button aria-label="Definition for Decision-Making Process" class="field-help__button" type="button">i</button><span class="field-help__tooltip" role="tooltip">Describe how the group makes decisions, such as consensus, majority vote, advisory recommendation, or executive approval.</span></span></div>
 
