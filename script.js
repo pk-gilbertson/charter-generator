@@ -22,6 +22,34 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const MEMBER_COLUMNS = ['Name', 'Title', 'Role', 'Voting Status'];
+  const DEFAULT_ROLE_DEFINITION_LINES = [
+    'Executive Sponsor: Provides executive support, alignment, and escalation authority.',
+    'Chair: Leads meetings, sets priorities, and guides committee decisions.',
+    'Members: Participate in deliberation, decision-making, and follow-through.',
+    'Advisors: Provide subject matter expertise in support of the committee.'
+  ];
+  const FUNCTION_TO_ROLE_DEFINITIONS = {
+    'Business / Program Leadership': 'Business / Program Leadership: Senior leaders representing business or program priorities.',
+    'Data Ownership':
+      'Data Ownership: Staff that own the purpose, use, access, and sharing expectations for the data asset.',
+    'Data Stewardship':
+      'Data Stewardship: Staff responsible for operational quality, definitions, and day-to-day governance practices.',
+    'Data Stewardship (IT / Data Platform)':
+      'Data Stewardship (IT / Data Platform): Technical staff supporting systems, integration, or data platforms.',
+    'Information Security': 'Information Security: Staff representing security requirements and risk controls.',
+    'Privacy / Confidentiality':
+      'Privacy / Confidentiality: Staff representing privacy, confidentiality, or disclosure requirements.',
+    'Legal / Compliance':
+      'Legal / Compliance: Staff representing statutory, regulatory, contractual, or policy obligations.',
+    'Records / Information Management':
+      'Records / Information Management: Staff representing retention, records management, or information lifecycle practices.',
+    'Analytics / BI / Reporting':
+      'Analytics / BI / Reporting: Staff representing reporting, dashboards, analytics, or downstream use.',
+    'Operations / Service Delivery':
+      'Operations / Service Delivery: Staff representing operational processes affected by the data.',
+    'External Partner / Interagency Liaison':
+      'External Partner / Interagency Liaison: Staff representing partner coordination or external participation.'
+  };
   const REQUIRED_FIELD_IDS = ['agency-name', 'charter-name'];
   const PROGRESS_FIELD_IDS = [
     'agency-name',
@@ -319,18 +347,12 @@ document.addEventListener('DOMContentLoaded', () => {
     ].join('\n'),
     'required-functions': [
       'Business / Program Leadership',
-      'IT / Data Platform',
+      'Data Stewardship (IT / Data Platform)',
       'Privacy / Confidentiality',
       'Legal / Compliance',
       'Analytics / BI / Reporting'
     ],
-    'role-definitions': [
-      'Executive Sponsor: Provides executive support, alignment, and escalation authority.',
-      'Chair: Leads meetings, sets priorities, and guides committee decisions.',
-      'Members: Participate in deliberation, decision-making, and follow-through.',
-      'Advisors: Provide subject matter expertise in support of the committee.',
-      'Data Owners, Stewards, and Custodians: Support governance decisions within their assigned roles.'
-    ].join('\n'),
+    'role-definitions': DEFAULT_ROLE_DEFINITION_LINES.join('\n'),
     responsibilities: [
       'Review and approve governance priorities, standards, and supporting guidance.',
       'Clarify ownership, stewardship, and accountability for priority data assets.',
@@ -429,6 +451,44 @@ document.addEventListener('DOMContentLoaded', () => {
     const field = getField(id);
     if (!field) return;
     field.value = value;
+  }
+
+  function mergeUniqueLines(existingLines, linesToAdd) {
+    const unique = [];
+    const seen = new Set();
+
+    [...existingLines, ...linesToAdd].forEach((line) => {
+      const normalized = String(line || '').trim();
+      if (!normalized) return;
+      const key = normalized.toLowerCase();
+      if (seen.has(key)) return;
+      seen.add(key);
+      unique.push(normalized);
+    });
+
+    return unique;
+  }
+
+  function getSuggestedRoleDefinitionLines() {
+    const selectedFunctions = getFieldValue('required-functions', DEFAULTS['required-functions']);
+    const values = Array.isArray(selectedFunctions) ? selectedFunctions : toLines(selectedFunctions);
+
+    return values
+      .map((value) => FUNCTION_TO_ROLE_DEFINITIONS[String(value || '').trim()])
+      .filter(Boolean);
+  }
+
+  function syncRoleDefinitionsFromRequiredFunctions() {
+    const roleDefinitionsField = getField('role-definitions');
+    if (!roleDefinitionsField) return;
+
+    const existing = toLines(roleDefinitionsField.value);
+    const suggested = getSuggestedRoleDefinitionLines();
+    const merged = mergeUniqueLines(existing, suggested);
+
+    if (merged.join('\n') !== existing.join('\n')) {
+      roleDefinitionsField.value = merged.join('\n');
+    }
   }
 
   function toLines(text) {
@@ -919,6 +979,7 @@ document.addEventListener('DOMContentLoaded', () => {
       populateMembersTable(DEFAULT_MEMBERS);
     }
 
+    syncRoleDefinitionsFromRequiredFunctions();
     updateAllStructuredFieldStates();
     updateHelpers();
     setStatus('Starter content loaded. Review and customize before export.', 'success');
@@ -1264,6 +1325,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const structuredFieldId = target.dataset?.structuredField;
     if (structuredFieldId) {
       updateStructuredFieldState(structuredFieldId);
+      if (structuredFieldId === 'required-functions') {
+        syncRoleDefinitionsFromRequiredFunctions();
+      }
     }
 
     updateHelpers();
@@ -1350,6 +1414,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   renderStructuredFields();
+  if (!getOptionalValue('role-definitions')) {
+    setTextValue('role-definitions', DEFAULT_ROLE_DEFINITION_LINES.join('\n'));
+  }
   initMembersTable();
   updateAllStructuredFieldStates();
   initialFormSnapshot = serializeFormState();
