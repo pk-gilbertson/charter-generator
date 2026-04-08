@@ -521,7 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
     config.options.forEach((option, index) => {
       const itemId = `${id}-${index}`;
       const label = document.createElement('label');
-      label.className = 'checkbox-option';
+      label.className = 'checkbox-option checkbox-option--compact';
       label.setAttribute('for', itemId);
 
       const input = document.createElement('input');
@@ -532,7 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
       input.dataset.structuredField = id;
 
       const copy = document.createElement('span');
-      copy.className = 'checkbox-option__copy';
+      copy.className = 'checkbox-option__copy checkbox-option__copy--centered';
 
       const title = document.createElement('span');
       title.className = 'checkbox-option__label';
