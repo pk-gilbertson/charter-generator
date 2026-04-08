@@ -154,15 +154,15 @@ document.addEventListener('DOMContentLoaded', () => {
           definition: 'Senior leaders representing business or program priorities.'
         },
         {
-          value: 'Data Owner',
-          definition: 'Person accountable for a data domain and its use.'
+          value: 'Data Ownership',
+          definition: 'Persons accountable for a data domain and its use.'
         },
         {
-          value: 'Data Steward',
-          definition: 'Person responsible for operational quality, definitions, and day-to-day governance practices.'
+          value: 'Data Stewardship',
+          definition: 'Persons responsible for operational quality, definitions, and day-to-day governance practices.'
         },
         {
-          value: 'IT / Data Platform',
+          value: 'Data Stewardship (IT / Data Platform)',
           definition: 'Technical staff supporting systems, integration, or data platforms.'
         },
         {
