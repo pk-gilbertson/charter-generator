@@ -286,6 +286,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
+  const MEMBER_ROLE_OPTIONS = ['Chair', 'Member', 'Advisor'];
+  const MEMBER_VOTING_OPTIONS = ['Voting', 'Non-Voting'];
+
   const DEFAULT_MEMBERS = [
     { name: 'Jane Doe', title: 'Chief Data Officer', role: 'Chair', voting: 'Voting' },
     { name: 'John Smith', title: 'Program Director', role: 'Member', voting: 'Voting' },
@@ -851,13 +854,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const fields = [
       { key: 'name', label: 'Name', placeholder: 'e.g., Jane Doe', type: 'text' },
       { key: 'title', label: 'Title', placeholder: 'e.g., Chief Data Officer', type: 'text' },
-      { key: 'role', label: 'Role', placeholder: 'e.g., Chair', type: 'text' },
+      {
+        key: 'role',
+        label: 'Role',
+        placeholder: 'Select role',
+        type: 'select',
+        options: MEMBER_ROLE_OPTIONS
+      },
       {
         key: 'voting',
         label: 'Voting Status',
         placeholder: 'Select voting status',
         type: 'select',
-        options: ['Voting', 'Non-Voting']
+        options: MEMBER_VOTING_OPTIONS
       }
     ];
 
@@ -904,7 +913,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!membersTbody) return;
     membersTbody.innerHTML = '';
     members.forEach((member) => {
-      membersTbody.appendChild(createMemberRow(member));
+      membersTbody.appendChild(
+        createMemberRow({
+          ...member,
+          role: MEMBER_ROLE_OPTIONS.includes(member?.role) ? member.role : '',
+          voting: MEMBER_VOTING_OPTIONS.includes(member?.voting) ? member.voting : ''
+        })
+      );
     });
   }
 
