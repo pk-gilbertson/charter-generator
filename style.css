@@ -296,10 +296,10 @@ textarea {
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(280px, 312px) minmax(0, 1fr);
-  gap: 1.75rem;
+  grid-template-columns: 312px minmax(0, 1fr);
+  column-gap: 1.75rem;
+  row-gap: 1.75rem;
   align-items: start;
-  min-width: 0;
 }
 
 .workspace > * {
@@ -307,13 +307,16 @@ textarea {
 }
 
 .jump-nav {
+  grid-column: 1;
+  width: 312px;
+  max-width: 100%;
   min-width: 0;
-  width: 100%;
   position: sticky;
   top: 5rem;
   display: grid;
   gap: 1rem;
   align-self: start;
+  justify-self: start;
 }
 
 .jump-nav__card {
@@ -339,6 +342,15 @@ textarea {
 .jump-nav__helper {
   margin-top: 0.5rem;
   font-size: 0.92rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+#filename-preview {
+  display: inline-block;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .progress-meter {
@@ -380,7 +392,6 @@ textarea {
 
 .form-card {
   padding: 1.35rem 1.35rem 1.2rem;
-  min-width: 0;
 }
 
 .form-card--owner {
@@ -528,7 +539,6 @@ button:focus-visible,
 
 .table-wrap {
   overflow-x: auto;
-  max-width: 100%;
 }
 
 .members-table {
@@ -708,10 +718,17 @@ button:focus-visible,
   }
 
   .jump-nav {
+    grid-column: 1;
     width: 100%;
+    max-width: none;
     min-width: 0;
     position: static;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .content-stack {
+    grid-column: 1;
+    width: 100%;
   }
 }
 
@@ -778,10 +795,18 @@ button:focus-visible,
 }
 
 .content-stack {
+  grid-column: 2;
   display: grid;
   gap: 1rem;
   min-width: 0;
   width: 100%;
+  overflow: hidden;
+}
+
+.inline-help-banner,
+.charter-form,
+.form-card {
+  min-width: 0;
 }
 
 .charter-form {
@@ -792,4 +817,12 @@ button:focus-visible,
   margin: 0.45rem 0 0;
   font-size: 0.92rem;
   color: var(--muted);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+@media (max-width: 980px) {
+  .content-stack {
+    order: 2;
+  }
 }
