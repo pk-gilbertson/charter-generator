@@ -314,6 +314,8 @@ textarea {
   display: grid;
   gap: 1rem;
   align-self: start;
+  max-height: calc(100vh - 6rem);  
+  overflow-y: auto;              
 }
 
 .jump-nav__card {
