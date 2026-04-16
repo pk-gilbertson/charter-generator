@@ -775,11 +775,10 @@ button:focus-visible,
 }
 
 .content-stack {
-  flex: 1 1 auto;
+  flex: 1 1 0%;
   display: grid;
   gap: 1rem;
   min-width: 0;
-  width: 100%;
 }
 
 .charter-form {
