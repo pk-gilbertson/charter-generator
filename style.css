@@ -295,17 +295,20 @@ textarea {
 }
 
 .workspace {
-  display: grid;
-  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr);
-  gap: 1.5rem;
-  align-items: start;
+  display: flex;
+  gap: 1.75rem;
+  align-items: flex-start;
+  min-width: 0;
 }
 
 .jump-nav {
+  flex: 0 0 312px;
+  min-width: 280px;
   position: sticky;
   top: 5rem;
   display: grid;
   gap: 1rem;
+  align-self: flex-start;
 }
 
 .jump-nav__card {
@@ -353,6 +356,16 @@ textarea {
   margin: 0 0 1rem;
   font-size: 0.92rem;
   color: rgba(31, 41, 51, 0.8);
+}
+
+.inline-help-banner {
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(200, 185, 166, 0.72);
+  border-left: 4px solid rgba(165, 74, 42, 0.72);
+  border-radius: var(--radius-md);
+  background: linear-gradient(180deg, rgba(237, 223, 213, 0.46) 0%, rgba(255, 255, 255, 0.94) 100%);
+  color: rgba(31, 41, 51, 0.92);
+  box-shadow: var(--shadow-soft);
 }
 
 .charter-form {
@@ -684,12 +697,18 @@ button:focus-visible,
 
 @media (max-width: 1120px) {
   .workspace {
-    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
   .jump-nav {
+    width: 100%;
+    min-width: 0;
     position: static;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .content-stack {
+    width: 100%;
   }
 }
 
@@ -756,8 +775,14 @@ button:focus-visible,
 }
 
 .content-stack {
+  flex: 1 1 auto;
   display: grid;
   gap: 1rem;
+  min-width: 0;
+  width: 100%;
+}
+
+.charter-form {
   min-width: 0;
 }
 
