@@ -314,8 +314,6 @@ textarea {
   display: grid;
   gap: 1rem;
   align-self: start;
-  max-height: calc(100vh - 6rem);  
-  overflow-y: auto;              
 }
 
 .jump-nav__card {
@@ -382,6 +380,7 @@ textarea {
 
 .form-card {
   padding: 1.35rem 1.35rem 1.2rem;
+  min-width: 0;
 }
 
 .form-card--owner {
@@ -529,6 +528,7 @@ button:focus-visible,
 
 .table-wrap {
   overflow-x: auto;
+  max-width: 100%;
 }
 
 .members-table {
@@ -782,7 +782,6 @@ button:focus-visible,
   gap: 1rem;
   min-width: 0;
   width: 100%;
-  grid-column: 2;
 }
 
 .charter-form {
@@ -793,10 +792,4 @@ button:focus-visible,
   margin: 0.45rem 0 0;
   font-size: 0.92rem;
   color: var(--muted);
-}
-
-@media (max-width: 1120px) {
-  .content-stack {
-    grid-column: 1; 
-  }
 }
