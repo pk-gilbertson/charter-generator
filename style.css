@@ -472,8 +472,9 @@ label {
   margin-bottom: var(--space-5);
   padding: 0.9rem 1rem;
   border: 1px solid rgba(200, 185, 166, 0.72);
+  border-left: 4px solid rgba(165, 74, 42, 0.72);
   border-radius: var(--radius-md);
-  background: linear-gradient(180deg, rgba(247, 243, 236, 0.95) 0%, rgba(255, 255, 255, 1) 100%);
+  background: linear-gradient(180deg, rgba(237, 223, 213, 0.46) 0%, rgba(255, 255, 255, 1) 100%);
   color: rgba(31, 41, 51, 0.86);
   box-shadow: var(--shadow-soft);
 }
